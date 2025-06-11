@@ -109,10 +109,17 @@ export default function AppDetails({ appId }: AppDetailsProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      <div className="animated-background">
+        <div className="floating-shapes">
+          <div className="shape"></div>
+          <div className="shape"></div>
+          <div className="shape"></div>
+        </div>
+      </div>
       <Navbar />
-      <main className="flex-grow">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-grow relative z-10 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto glass-effect rounded-lg p-8 sm:p-10 lg:p-12 shadow-xl">
           {/* App Header */}
           <div className="lg:grid lg:grid-cols-2 lg:gap-x-8">
             {/* Screenshots Section */}
@@ -251,11 +258,9 @@ export default function AppDetails({ appId }: AppDetailsProps) {
                     <span>Once installed, you can find the app in your device's app drawer.</span>
                   </li>
                 </ol>
-                <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Note:</strong> Make sure to download apps only from trusted sources. Our platform verifies all apps before making them available for download.
-                  </p>
-                </div>
+                <p className="mt-4 text-sm text-red-500 font-medium">
+                  Security Note: Enabling "Unknown Sources" may pose security risks. Only install APKs from trusted sources like NamApp.
+                </p>
               </div>
             </div>
           </div>
