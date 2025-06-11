@@ -97,10 +97,10 @@ export default function Footer() {
               © {new Date().getFullYear()} NamApps. All rights reserved.
             </p>
             <div className="mt-4 md:mt-0">
-              <Link href="/privacy" className="text-sm text-gray-400 hover:text-indigo-400 transition-colors mr-4">
+              <Link href="/privacy-policy" className="text-sm text-gray-400 hover:text-indigo-400 transition-colors mr-4">
                 Privacy Policy
               </Link>
-              <Link href="/terms" className="text-sm text-gray-400 hover:text-indigo-400 transition-colors">
+              <Link href="/terms-of-service" className="text-sm text-gray-400 hover:text-indigo-400 transition-colors">
                 Terms of Service
               </Link>
             </div>
