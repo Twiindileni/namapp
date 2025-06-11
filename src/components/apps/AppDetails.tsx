@@ -31,13 +31,16 @@ export default function AppDetails({ appId }: AppDetailsProps) {
 
           // Fetch developer name if developerId exists
           if (appData.developerId) {
+            console.log('Fetching user for developerId:', appData.developerId)
             const userRef = doc(db, 'users', appData.developerId)
+            console.log('User ref:', userRef.path)
             const unsubscribeUser = onSnapshot(userRef, (userDocSnapshot) => {
               if (userDocSnapshot.exists()) {
                 const userData = userDocSnapshot.data()
-                // Assuming 'name' or 'displayName' field in user document
-                setDeveloperName(userData.name || userData.displayName || appData.developerEmail) 
+                // Explicitly use 'name' field from user document
+                setDeveloperName(userData.name || 'Unknown Developer') 
               } else {
+                console.warn('Developer user document not found for ID:', appData.developerId)
                 setDeveloperName(appData.developerEmail) // Fallback to email if user doc not found
               }
             })
