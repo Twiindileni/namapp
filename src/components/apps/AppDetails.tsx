@@ -18,14 +18,34 @@ export default function AppDetails({ appId }: AppDetailsProps) {
   const [loading, setLoading] = useState(true)
   const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0)
   const [downloading, setDownloading] = useState(false)
+  const [developerName, setDeveloperName] = useState<string | null>(null)
 
   useEffect(() => {
     const appRef = doc(db, 'apps', appId)
     
     const unsubscribe = onSnapshot(appRef, 
-      (doc) => {
-        if (doc.exists()) {
-          setApp({ id: doc.id, ...doc.data() } as App)
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const appData = { id: docSnapshot.id, ...docSnapshot.data() } as App
+          setApp(appData)
+
+          // Fetch developer name if developerId exists
+          if (appData.developerId) {
+            const userRef = doc(db, 'users', appData.developerId)
+            const unsubscribeUser = onSnapshot(userRef, (userDocSnapshot) => {
+              if (userDocSnapshot.exists()) {
+                const userData = userDocSnapshot.data()
+                // Assuming 'name' or 'displayName' field in user document
+                setDeveloperName(userData.name || userData.displayName || appData.developerEmail) 
+              } else {
+                setDeveloperName(appData.developerEmail) // Fallback to email if user doc not found
+              }
+            })
+            return () => unsubscribeUser()
+          } else {
+            setDeveloperName(appData.developerEmail) // Fallback to email if no developerId
+          }
+
         } else {
           toast.error('App not found')
         }
@@ -193,7 +213,7 @@ export default function AppDetails({ appId }: AppDetailsProps) {
                 </div>
                 <div className="flex items-center text-sm text-gray-500">
                   <UserIcon className="h-5 w-5 mr-2" />
-                  <span>Developer: {app.developerEmail}</span>
+                  <span>Developer: {developerName || app.developerEmail}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-500">
                   <ClockIcon className="h-5 w-5 mr-2" />
