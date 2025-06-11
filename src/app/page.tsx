@@ -32,8 +32,8 @@ export default function Home() {
             <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-xl lg:flex-shrink-0 lg:pt-8">
               <h1 className="mt-10 text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
                 Discover Amazing <span className="relative inline-block">
-                  <span className="relative z-10 bg-gradient-to-r from-[#003580] via-[#D21034] to-[#009543] bg-clip-text text-transparent animate-gradient-flow-1">Namibian</span>
-                </span> Apps
+                  <span className="relative z-10 bg-gradient-to-r from-[#003580] via-[#D21034] to-[#009543] bg-clip-text text-transparent animate-gradient-flow-1">Namibian</span> Apps
+                </span>
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600">
                 Explore and download amazing applications created by Namibian developers. From productivity tools to entertainment apps, find everything you need in one place.
@@ -61,28 +61,7 @@ export default function Home() {
                 Featured Apps
               </span>
             </h2>
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Featured App Cards */}
-              <div className="group relative rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg bg-gray-200">
-                  <div className="h-48 w-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-white text-lg font-medium">App Preview</span>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <h3 className="text-lg font-medium text-gray-900">App Name</h3>
-                  <p className="mt-1 text-sm text-gray-500">Brief description of the app and its features.</p>
-                </div>
-                <div className="mt-4">
-                  <Link
-                    href="/apps/1"
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                  >
-                    Learn more <span aria-hidden="true">→</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
+            <FeaturedApps />
           </div>
         </div>
 
