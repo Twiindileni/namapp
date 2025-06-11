@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/layout/AnimatedBackground";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NamApps - Namibia's Local App Store",
-  description: "Discover and download apps created by Namibian developers",
+  title: "NamApp - Namibian App Store",
+  description: "Discover and download Namibian mobile applications",
 };
 
 export default function RootLayout({

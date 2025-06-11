@@ -18,6 +18,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Helper function to check if update is only for download tracking
+    function isDownloadUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['downloads', 'lastDownloadedAt', 'downloadHistory']);
+    }
+
     // Apps collection rules
     match /apps/{appId} {
       // Allow public read access to all apps
@@ -32,15 +38,18 @@ service cloud.firestore {
       // Developers can create apps
       allow create: if isAuthenticated();
       
-      // Developers can update their own apps if they're pending
-      allow update: if isOwner(resource.data.developerId) && 
-        resource.data.status == 'pending';
+      // Allow updates for either:
+      // 1. Developers updating their own pending apps
+      // 2. Authenticated users updating download tracking
+      allow update: if 
+        (isOwner(resource.data.developerId) && resource.data.status == 'pending') ||
+        (isAuthenticated() && isDownloadUpdate());
     }
 
     // Users collection rules
     match /users/{userId} {
-      // Users can read their own data
-      allow read: if isOwner(userId);
+      // Allow public read access to user documents
+      allow read: if true;
       
       // Only admins can write to user documents
       allow write: if isAdmin();

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { db } from '@/lib/firebase'
-import { doc, onSnapshot, updateDoc, increment, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { doc, onSnapshot, updateDoc, increment, arrayUnion, serverTimestamp, getDoc } from 'firebase/firestore'
 import { App } from '@/types/app'
 import toast from 'react-hot-toast'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { ChevronLeftIcon, ChevronRightIcon, ArrowDownTrayIcon, DevicePhoneMobileIcon, UserIcon, ClockIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface AppDetailsProps {
   appId: string
@@ -19,36 +20,37 @@ export default function AppDetails({ appId }: AppDetailsProps) {
   const [currentScreenshotIndex, setCurrentScreenshotIndex] = useState(0)
   const [downloading, setDownloading] = useState(false)
   const [developerName, setDeveloperName] = useState<string | null>(null)
+  const { user } = useAuth()
 
   useEffect(() => {
     const appRef = doc(db, 'apps', appId)
     
     const unsubscribe = onSnapshot(appRef, 
-      (docSnapshot) => {
+      async (docSnapshot) => {
         if (docSnapshot.exists()) {
           const appData = { id: docSnapshot.id, ...docSnapshot.data() } as App
           setApp(appData)
 
           // Fetch developer name if developerId exists
           if (appData.developerId) {
-            console.log('Fetching user for developerId:', appData.developerId)
-            const userRef = doc(db, 'users', appData.developerId)
-            console.log('User ref:', userRef.path)
-            const unsubscribeUser = onSnapshot(userRef, (userDocSnapshot) => {
-              if (userDocSnapshot.exists()) {
-                const userData = userDocSnapshot.data()
-                // Explicitly use 'name' field from user document
-                setDeveloperName(userData.name || 'Unknown Developer') 
+            try {
+              const userRef = doc(db, 'users', appData.developerId)
+              const userDoc = await getDoc(userRef)
+              
+              if (userDoc.exists()) {
+                const userData = userDoc.data()
+                setDeveloperName(userData.name || 'Unknown Developer')
               } else {
                 console.warn('Developer user document not found for ID:', appData.developerId)
-                setDeveloperName(appData.developerEmail) // Fallback to email if user doc not found
+                setDeveloperName(appData.developerEmail)
               }
-            })
-            return () => unsubscribeUser()
+            } catch (error) {
+              console.error('Error fetching developer data:', error)
+              setDeveloperName(appData.developerEmail)
+            }
           } else {
-            setDeveloperName(appData.developerEmail) // Fallback to email if no developerId
+            setDeveloperName(appData.developerEmail)
           }
-
         } else {
           toast.error('App not found')
         }
