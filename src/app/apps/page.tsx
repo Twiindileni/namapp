@@ -8,23 +8,23 @@ import Link from 'next/link'
 import { App } from '@/types/app'
 
 const categories = [
-  'All',
-  'Education',
-  'Games',
-  'Business',
-  'Entertainment',
-  'Social',
-  'Utilities',
-  'Health & Fitness',
-  'Travel',
-  'Food & Drink',
-  'Other'
+  'all',
+  'education',
+  'games',
+  'business',
+  'entertainment',
+  'social',
+  'utilities',
+  'health & fitness',
+  'travel',
+  'food & drink',
+  'other'
 ]
 
 export default function AppsPage() {
   const [apps, setApps] = useState<App[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function AppsPage() {
   }, [])
 
   const filteredApps = apps.filter(app => {
-    const matchesCategory = selectedCategory === 'All' || app.category === selectedCategory
+    const matchesCategory = selectedCategory === 'all' || app.category.toLowerCase() === selectedCategory.toLowerCase()
     const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          app.description.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesCategory && matchesSearch
@@ -81,7 +81,7 @@ export default function AppsPage() {
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
-                    {category}
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
                   </option>
                 ))}
               </select>

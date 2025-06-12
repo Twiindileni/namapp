@@ -61,5 +61,10 @@ service cloud.firestore {
       // Only admins can delete user documents
       allow delete: if isAdmin();
     }
+
+    // Categories collection rules
+    match /categories/{categoryId} {
+      allow read: if true;
+    }
   }
 } 
