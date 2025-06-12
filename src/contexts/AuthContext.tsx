@@ -2,7 +2,15 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { auth, db } from '@/lib/firebase'
-import { User, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth'
+import { 
+  User, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  createUserWithEmailAndPassword, 
+  sendEmailVerification,
+  RecaptchaVerifier,
+  AuthError
+} from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
 
@@ -40,6 +48,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (email: string, password: string, name: string) => {
     try {
+      // Create reCAPTCHA verifier
+      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+
+      // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
 
@@ -53,10 +70,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: 'developer'
       })
 
+      // Send verification email
+      await sendEmailVerification(user)
+
       setUser(user)
       return user
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to sign up')
+    } catch (error) {
+      console.error('Signup error:', error)
+      const authError = error as AuthError
+      
+      switch (authError.code) {
+        case 'auth/email-already-in-use':
+          throw new Error('This email is already registered. Please use a different email or try logging in.')
+        case 'auth/invalid-email':
+          throw new Error('Please enter a valid email address.')
+        case 'auth/weak-password':
+          throw new Error('Password should be at least 6 characters long.')
+        case 'auth/operation-not-allowed':
+          throw new Error('Email/password accounts are not enabled. Please contact support.')
+        default:
+          throw new Error(authError.message || 'Failed to sign up')
+      }
     }
   }
 

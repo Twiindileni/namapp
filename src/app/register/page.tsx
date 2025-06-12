@@ -32,15 +32,36 @@ export default function RegisterPage() {
       return
     }
 
+    if (formData.password.length < 6) {
+      toast.error('Password should be at least 6 characters long')
+      return
+    }
+
     try {
       setLoading(true)
-      const user = await signup(formData.email, formData.password, formData.name)
-      await sendEmailVerification(user)
+      await signup(formData.email, formData.password, formData.name)
       toast.success('Registration successful! Please verify your email.')
       router.push('/verify-email')
     } catch (error: any) {
       console.error('Registration error:', error)
-      toast.error(error.message || 'Failed to register')
+      const errorMessage = error.message || 'Failed to register'
+      
+      if (errorMessage.includes('already registered')) {
+        toast.error(
+          <div className="flex flex-col items-center gap-2">
+            <span>{errorMessage}</span>
+            <Link 
+              href="/login" 
+              className="text-indigo-600 hover:text-indigo-500 font-medium"
+            >
+              Click here to login
+            </Link>
+          </div>,
+          { duration: 5000 }
+        )
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -71,6 +92,7 @@ export default function RegisterPage() {
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
           <div className="glass-effect rounded-lg p-8 hover-lift">
             <form className="space-y-6" onSubmit={handleSubmit}>
+              <div id="recaptcha-container"></div>
               <div>
                 <label htmlFor="name" className="block text-sm font-medium leading-6 text-gray-900">
                   Full Name
