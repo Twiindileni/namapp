@@ -2,10 +2,10 @@
 
 import Navbar from '@/components/layout/Navbar'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function DashboardPage() {
-  const { user } = useAuthContext()
+  const { user } = useAuth()
 
   return (
     <ProtectedRoute>

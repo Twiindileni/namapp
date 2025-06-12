@@ -1,22 +1,33 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { auth } from '@/lib/firebase'
-import { User } from 'firebase/auth'
+import { auth, db } from '@/lib/firebase'
+import { User, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
+import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
+  signup: (email: string, password: string, name: string) => Promise<User>
+  isEmailVerified: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  login: async () => {},
+  logout: async () => {},
+  signup: async () => { throw new Error('Not implemented') },
+  isEmailVerified: false
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -27,8 +38,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe()
   }, [])
 
+  const signup = async (email: string, password: string, name: string) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
+
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: user.email,
+        name: name,
+        emailVerified: user.emailVerified,
+        createdAt: new Date().toISOString(),
+        role: 'developer'
+      })
+
+      setUser(user)
+      return user
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to sign up')
+    }
+  }
+
+  const login = async (email: string, password: string) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      setUser(userCredential.user)
+      
+      // If email is not verified, redirect to verification page
+      if (!userCredential.user.emailVerified) {
+        router.push('/verify-email')
+        return
+      }
+      
+      router.push('/dashboard')
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to login')
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await signOut(auth)
+      setUser(null)
+      router.push('/')
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to logout')
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      logout,
+      signup,
+      isEmailVerified: user?.emailVerified || false 
+    }}>
       {children}
     </AuthContext.Provider>
   )

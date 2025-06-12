@@ -4,7 +4,7 @@ import { Fragment } from 'react'
 import { Disclosure, Menu, Transition } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 
@@ -13,7 +13,7 @@ function classNames(...classes: string[]) {
 }
 
 export default function Navbar() {
-  const { user, logout, userRole } = useAuthContext()
+  const { user, logout } = useAuth()
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -95,36 +95,6 @@ export default function Navbar() {
                             </Link>
                           )}
                         </Menu.Item>
-                        {userRole === 'developer' && (
-                          <Menu.Item>
-                            {({ active }) => (
-                              <Link
-                                href="/dashboard"
-                                className={classNames(
-                                  active ? 'bg-gray-100' : '',
-                                  'block px-4 py-2 text-sm text-gray-700'
-                                )}
-                              >
-                                Dashboard
-                              </Link>
-                            )}
-                          </Menu.Item>
-                        )}
-                        {userRole === 'admin' && (
-                          <Menu.Item>
-                            {({ active }) => (
-                              <Link
-                                href="/admin"
-                                className={classNames(
-                                  active ? 'bg-gray-100' : '',
-                                  'block px-4 py-2 text-sm text-gray-700'
-                                )}
-                              >
-                                Admin Panel
-                              </Link>
-                            )}
-                          </Menu.Item>
-                        )}
                         <Menu.Item>
                           {({ active }) => (
                             <button
@@ -199,7 +169,6 @@ export default function Navbar() {
                   </div>
                   <div className="ml-3">
                     <div className="text-base font-medium text-gray-800">{user.email}</div>
-                    <div className="text-sm font-medium text-gray-500">{userRole}</div>
                   </div>
                 </div>
                 <div className="mt-3 space-y-1">
@@ -210,24 +179,6 @@ export default function Navbar() {
                   >
                     Your Profile
                   </Disclosure.Button>
-                  {userRole === 'developer' && (
-                    <Disclosure.Button
-                      as={Link}
-                      href="/dashboard"
-                      className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                    >
-                      Dashboard
-                    </Disclosure.Button>
-                  )}
-                  {userRole === 'admin' && (
-                    <Disclosure.Button
-                      as={Link}
-                      href="/admin"
-                      className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                    >
-                      Admin Panel
-                    </Disclosure.Button>
-                  )}
                   <Disclosure.Button
                     as="button"
                     onClick={handleLogout}

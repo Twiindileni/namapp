@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Link from 'next/link'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { sendEmailVerification } from 'firebase/auth'
 import toast from 'react-hot-toast'
 
 export default function RegisterPage() {
@@ -15,7 +16,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: ''
   })
-  const { signup } = useAuthContext()
+  const { signup } = useAuth()
   const router = useRouter()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,9 +34,10 @@ export default function RegisterPage() {
 
     try {
       setLoading(true)
-      await signup(formData.email, formData.password, formData.name)
-      toast.success('Registration successful!')
-      router.push('/dashboard')
+      const user = await signup(formData.email, formData.password, formData.name)
+      await sendEmailVerification(user)
+      toast.success('Registration successful! Please verify your email.')
+      router.push('/verify-email')
     } catch (error: any) {
       console.error('Registration error:', error)
       toast.error(error.message || 'Failed to register')

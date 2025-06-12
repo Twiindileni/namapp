@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Link from 'next/link'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 export default function DeveloperLoginPage() {
@@ -13,8 +13,15 @@ export default function DeveloperLoginPage() {
     email: '',
     password: ''
   })
-  const { login } = useAuthContext()
+  const { login, user } = useAuth()
   const router = useRouter()
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard')
+    }
+  }, [user, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -28,7 +35,6 @@ export default function DeveloperLoginPage() {
       setLoading(true)
       await login(formData.email, formData.password)
       toast.success('Login successful!')
-      router.push('/dashboard')
     } catch (error: any) {
       console.error('Login error:', error)
       toast.error(error.message || 'Failed to login')
