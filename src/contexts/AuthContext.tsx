@@ -11,7 +11,7 @@ import {
   RecaptchaVerifier,
   AuthError
 } from 'firebase/auth'
-import { doc, setDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
@@ -21,6 +21,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   signup: (email: string, password: string, name: string) => Promise<User>
   isEmailVerified: boolean
+  userRole: string | null
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,17 +30,30 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: async () => {},
   signup: async () => { throw new Error('Not implemented') },
-  isEmailVerified: false
+  isEmailVerified: false,
+  userRole: null
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setUser(user)
+      if (user) {
+        // Fetch user role from Firestore
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        if (userDoc.exists()) {
+          setUserRole(userDoc.data().role)
+        } else {
+          setUserRole(null)
+        }
+      } else {
+        setUserRole(null)
+      }
       setLoading(false)
     })
 
@@ -128,7 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login, 
       logout,
       signup,
-      isEmailVerified: user?.emailVerified || false 
+      isEmailVerified: user?.emailVerified || false,
+      userRole
     }}>
       {children}
     </AuthContext.Provider>

@@ -13,7 +13,7 @@ function classNames(...classes: string[]) {
 }
 
 export default function Navbar() {
-  const { user, logout } = useAuth()
+  const { user, logout, userRole } = useAuth()
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -95,6 +95,21 @@ export default function Navbar() {
                             </Link>
                           )}
                         </Menu.Item>
+                        {userRole === 'admin' && (
+                          <Menu.Item>
+                            {({ active }) => (
+                              <Link
+                                href="/admin"
+                                className={classNames(
+                                  active ? 'bg-gray-100' : '',
+                                  'block px-4 py-2 text-sm text-gray-700'
+                                )}
+                              >
+                                Admin Panel
+                              </Link>
+                            )}
+                          </Menu.Item>
+                        )}
                         <Menu.Item>
                           {({ active }) => (
                             <button
@@ -179,6 +194,15 @@ export default function Navbar() {
                   >
                     Your Profile
                   </Disclosure.Button>
+                  {userRole === 'admin' && (
+                    <Disclosure.Button
+                      as={Link}
+                      href="/admin"
+                      className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                    >
+                      Admin Panel
+                    </Disclosure.Button>
+                  )}
                   <Disclosure.Button
                     as="button"
                     onClick={handleLogout}
