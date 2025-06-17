@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { storage, db } from '@/lib/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { collection, addDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore'
-import { useAuthContext } from '@/context/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 const categories = [
@@ -48,7 +48,7 @@ export default function AppUploadForm() {
     apkFile: null as File | null,
     screenshots: [] as File[]
   })
-  const { user } = useAuthContext()
+  const { user } = useAuth()
   const router = useRouter()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -78,6 +78,7 @@ export default function AppUploadForm() {
       // Validate APK file
       if (!formData.apkFile) {
         toast.error('Please select an APK file')
+        setLoading(false)
         return
       }
 
@@ -86,6 +87,7 @@ export default function AppUploadForm() {
       // Validate APK file type
       if (!formData.apkFile.name.toLowerCase().endsWith('.apk')) {
         toast.error('Please upload a valid APK file')
+        setLoading(false)
         return
       }
 
@@ -93,12 +95,14 @@ export default function AppUploadForm() {
       const maxSize = 100 * 1024 * 1024 // 100MB
       if (formData.apkFile.size > maxSize) {
         toast.error('APK file size should be less than 100MB')
+        setLoading(false)
         return
       }
 
       // Validate screenshots
       if (formData.screenshots.length === 0) {
         toast.error('Please upload at least one screenshot')
+        setLoading(false)
         return
       }
 
@@ -111,10 +115,12 @@ export default function AppUploadForm() {
       for (const screenshot of formData.screenshots) {
         if (!allowedImageTypes.includes(screenshot.type)) {
           toast.error('Screenshots must be JPEG or PNG files')
+          setLoading(false)
           return
         }
         if (screenshot.size > maxScreenshotSize) {
           toast.error('Each screenshot should be less than 5MB')
+          setLoading(false)
           return
         }
       }
@@ -140,7 +146,7 @@ export default function AppUploadForm() {
       try {
         // Use retry logic for APK upload
         await retryOperation(async () => {
-          await uploadBytes(apkRef, formData.apkFile, apkMetadata)
+          await uploadBytes(apkRef, formData.apkFile!, apkMetadata)
         })
         console.log('APK upload completed')
         
@@ -186,7 +192,7 @@ export default function AppUploadForm() {
           apkUrl,
           apkMetadata: {
             fileName: apkFileName,
-            fileSize: formData.apkFile.size,
+            fileSize: formData.apkFile!.size,
             uploadedAt: new Date().toISOString()
           },
           screenshotUrls,

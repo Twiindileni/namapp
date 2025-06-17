@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { db } from '@/lib/firebase'
-import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, onSnapshot, getDocs } from 'firebase/firestore'
 import { App } from '@/types/app'
 import toast from 'react-hot-toast'
 
@@ -12,58 +12,86 @@ export default function FeaturedApps() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      console.log('Setting up apps query...')
-      const appsRef = collection(db, 'apps')
-      const appsQuery = query(
-        appsRef,
-        where('status', '==', 'approved'),
-        orderBy('downloads', 'desc'),
-        limit(4)
-      )
+    let unsubscribe: (() => void) | undefined
 
-      console.log('Starting onSnapshot listener...')
-      const unsubscribe = onSnapshot(appsQuery, 
-        (snapshot) => {
-          try {
-            console.log('Snapshot received, empty:', snapshot.empty)
-            console.log('Number of docs:', snapshot.docs.length)
-            
-            const apps = snapshot.docs.map(doc => {
-              const data = doc.data()
-              console.log('App data:', { id: doc.id, ...data })
-              return {
-                id: doc.id,
-                ...data
-              }
-            }) as App[]
-            
-            console.log('Processed apps:', apps)
-            setFeaturedApps(apps)
-          } catch (error) {
-            console.error('Error processing apps data:', error)
-            toast.error('Error processing apps data')
-          } finally {
+    const fetchApps = async () => {
+      try {
+        console.log('Setting up apps query...')
+        const appsRef = collection(db, 'apps')
+        
+        // First, try to get all approved apps
+        const q = query(
+          appsRef,
+          where('status', '==', 'approved')
+        )
+        
+        const snapshot = await getDocs(q)
+        console.log('Found approved apps:', snapshot.size)
+        
+        // Then set up the real-time listener
+        const appsQuery = query(
+          appsRef,
+          where('status', '==', 'approved'),
+          orderBy('downloads', 'desc'),
+          limit(4)
+        )
+
+        console.log('Starting onSnapshot listener...')
+        unsubscribe = onSnapshot(appsQuery, 
+          (snapshot) => {
+            try {
+              console.log('Snapshot received, empty:', snapshot.empty)
+              console.log('Number of docs:', snapshot.docs.length)
+              
+              const apps = snapshot.docs.map(doc => {
+                const data = doc.data()
+                console.log('App data:', { id: doc.id, ...data })
+                return {
+                  id: doc.id,
+                  name: data.name || '',
+                  description: data.description || '',
+                  category: data.category || '',
+                  version: data.version || '',
+                  apkUrl: data.apkUrl || '',
+                  screenshotUrls: data.screenshotUrls || [],
+                  status: data.status || 'pending',
+                  downloads: data.downloads || 0,
+                  createdAt: data.createdAt || new Date().toISOString(),
+                  developerEmail: data.developerEmail || ''
+                } as App
+              })
+              
+              console.log('Processed apps:', apps)
+              setFeaturedApps(apps)
+            } catch (error) {
+              console.error('Error processing apps data:', error)
+              toast.error('Error processing apps data')
+            } finally {
+              setLoading(false)
+            }
+          },
+          (error) => {
+            console.error('Error in onSnapshot:', error)
+            console.error('Error code:', error.code)
+            console.error('Error message:', error.message)
+            toast.error('Failed to load featured apps')
             setLoading(false)
           }
-        },
-        (error) => {
-          console.error('Error in onSnapshot:', error)
-          console.error('Error code:', error.code)
-          console.error('Error message:', error.message)
-          toast.error('Failed to load featured apps')
-          setLoading(false)
-        }
-      )
+        )
+      } catch (error) {
+        console.error('Error setting up apps query:', error)
+        toast.error('Error setting up apps query')
+        setLoading(false)
+      }
+    }
 
-      return () => {
+    fetchApps()
+
+    return () => {
+      if (unsubscribe) {
         console.log('Cleaning up onSnapshot listener...')
         unsubscribe()
       }
-    } catch (error) {
-      console.error('Error setting up apps query:', error)
-      toast.error('Error setting up apps query')
-      setLoading(false)
     }
   }, [])
 

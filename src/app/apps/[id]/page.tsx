@@ -1,7 +1,9 @@
+'use client'
+
 import { Suspense } from 'react'
 import AppDetails from '@/components/apps/AppDetails'
 
-export default function AppPage({ params }: { params: { id: string } }) {
+export default async function AppPage({ params }: { params: { id: string } }) {
   return (
     <Suspense 
       fallback={

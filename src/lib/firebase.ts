@@ -4,12 +4,13 @@ import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBSDYQoVhoDXDy1l9LvSluhmZBwfJ3U8Wo",
+  apiKey: "AIzaSyCeG43tpDhTWNWAs_7rp2LU_b_bSJpkne4",
   authDomain: "namapps-production-c738c.firebaseapp.com",
   projectId: "namapps-production-c738c",
-  storageBucket: "namapps-production-c738c.appspot.com",
+  storageBucket: "namapps-production-c738c.firebasestorage.app",
   messagingSenderId: "252587075978",
-  appId: "1:252587075978:android:1e07fd805f7f5e3a610073"
+  appId: "1:252587075978:web:437fdf177795ce4b610073",
+  measurementId: "G-H9HD03JMV1"
 }
 
 // Debug: Log the configuration (without the API key for security)
