@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Helper function to check if user is the owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function to check if update is only for download tracking
+    function isDownloadUpdate() {
+      let allowedFields = ['downloads', 'lastDownloadedAt', 'downloadHistory'];
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasOnly(allowedFields);
+    }
+
+    // Apps collection rules
+    match /apps/{appId} {
+      // Allow public read access to all apps
+      allow read: if true;
+      
+      // Allow listing apps with queries
+      allow list: if true;
+      
+      // Only admins can write to apps
+      allow write: if isAdmin();
+      
+      // Developers can create apps
+      allow create: if isAuthenticated();
+      
+      // Allow updates for either:
+      // 1. Developers updating their own pending apps
+      // 2. Any user updating download tracking
+      allow update: if 
+        (isOwner(resource.data.developerId) && resource.data.status == 'pending') ||
+        isDownloadUpdate();
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      // Allow public read access to user documents
+      allow read: if true;
+      
+      // Allow users to create their own document
+      allow create: if isOwner(userId);
+      
+      // Allow users to update their own document
+      allow update: if isOwner(userId);
+      
+      // Only admins can delete user documents
+      allow delete: if isAdmin();
+    }
+
+    // Categories collection rules
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+} 
