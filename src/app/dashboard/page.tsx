@@ -49,12 +49,6 @@ export default function DashboardPage() {
       }
     }
 
-    if (userRole && userRole !== 'developer') {
-      toast.error('Access denied. Developer privileges required.')
-      setLoading(false)
-      return
-    }
-
     fetchApps()
   }, [user, userRole, authLoading])
 
@@ -87,15 +81,21 @@ export default function DashboardPage() {
                 Developer Dashboard
               </h1>
               <p className="mt-2 text-sm text-gray-700">
-                Manage your apps and track their performance
+                Manage your apps and products
               </p>
             </div>
             <div className="mt-4 flex md:ml-4 md:mt-0">
               <Link
                 href="/apps/new"
-                className="ml-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 Add New App
+              </Link>
+              <Link
+                href="/products/new"
+                className="ml-3 inline-flex items-center rounded-md bg-purple-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
+              >
+                Add Product
               </Link>
             </div>
           </div>

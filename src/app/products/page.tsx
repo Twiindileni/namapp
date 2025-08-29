@@ -65,14 +65,9 @@ export default function ProductsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((p) => (
-                <div key={p.id} className="bg-white rounded-lg shadow overflow-hidden">
+                <Link key={p.id} href={`/products/${p.id}`} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
                   {p.image_url ? (
-                    <ImageLightbox 
-                      src={p.image_url} 
-                      alt={p.name}
-                      thumbClassName="w-full"
-                      imgClassName="w-full h-48 object-contain bg-gray-100"
-                    />
+                    <img src={p.image_url} alt={p.name} className="w-full h-48 object-cover" />
                   ) : (
                     <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">No image</div>
                   )}
@@ -84,7 +79,7 @@ export default function ProductsPage() {
                     <p className="mt-2 text-sm text-gray-600 line-clamp-3">{p.description}</p>
                     <p className="mt-3 text-xs text-gray-400">{new Date(p.created_at).toLocaleString()}</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
