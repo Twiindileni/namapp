@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import ImageLightbox from '@/components/common/ImageLightbox'
 import OrderForm from '@/components/orders/OrderForm'
+import ProductRating from './ProductRating'
+import RatingForm from './RatingForm'
 
 interface Product {
   id: string
@@ -22,6 +24,8 @@ export default function ProductDetails({ productId }: { productId: string }) {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [showOrderForm, setShowOrderForm] = useState(false)
+  const [showRatingForm, setShowRatingForm] = useState(false)
+  const [ratingKey, setRatingKey] = useState(0)
 
   useEffect(() => {
     const load = async () => {
@@ -77,16 +81,33 @@ export default function ProductDetails({ productId }: { productId: string }) {
                 <p className="mt-4 text-gray-700 whitespace-pre-wrap">{product.description}</p>
                 <p className="mt-4 text-sm text-gray-400">{new Date(product.created_at).toLocaleString()}</p>
                 
-                <div className="mt-6">
+                <div className="mt-6 space-y-4">
                   <button
                     onClick={() => setShowOrderForm(true)}
                     className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                   >
                     Order Now - N$ {product.price_nad.toFixed(2)}
                   </button>
+                  
+                  <button
+                    onClick={() => setShowRatingForm(true)}
+                    className="w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    Rate This Product
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
+          
+          {/* Ratings Section */}
+          <div className="mt-8 bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Customer Reviews</h2>
+            <ProductRating 
+              key={ratingKey}
+              productId={product.id} 
+              showReviews={true} 
+            />
           </div>
         </div>
       </main>
@@ -98,6 +119,15 @@ export default function ProductDetails({ productId }: { productId: string }) {
           productName={product.name}
           productPrice={product.price_nad}
           onClose={() => setShowOrderForm(false)}
+        />
+      )}
+      
+      {showRatingForm && product && (
+        <RatingForm
+          productId={product.id}
+          productName={product.name}
+          onRatingSubmitted={() => setRatingKey(prev => prev + 1)}
+          onClose={() => setShowRatingForm(false)}
         />
       )}
     </div>

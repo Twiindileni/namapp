@@ -76,12 +76,27 @@ create table if not exists public.orders (
 	updated_at timestamptz default now()
 );
 
+-- Product Ratings
+create table if not exists public.product_ratings (
+	id uuid primary key default uuid_generate_v4(),
+	product_id uuid not null references public.products(id) on delete cascade,
+	user_id uuid references auth.users(id) on delete set null,
+	rating integer not null check (rating >= 1 and rating <= 5),
+	review text,
+	user_name text not null,
+	user_email text,
+	created_at timestamptz default now(),
+	updated_at timestamptz default now(),
+	unique(product_id, user_id)
+);
+
 -- Basic RLS
 alter table public.users enable row level security;
 alter table public.apps enable row level security;
 alter table public.app_screenshots enable row level security;
 alter table public.products enable row level security;
 alter table public.orders enable row level security;
+alter table public.product_ratings enable row level security;
 
 -- Apps policies
 drop policy if exists apps_read_all on public.apps;
@@ -146,5 +161,19 @@ drop policy if exists orders_update_admin on public.orders;
 create policy orders_update_admin on public.orders for update to authenticated using (
   exists (select 1 from public.users where id = auth.uid() and role = 'admin')
 );
+
+-- Product Ratings policies
+-- Anyone can read ratings
+drop policy if exists ratings_read_all on public.product_ratings;
+create policy ratings_read_all on public.product_ratings for select using (true);
+-- Anyone can insert ratings (public access)
+drop policy if exists ratings_insert_public on public.product_ratings;
+create policy ratings_insert_public on public.product_ratings for insert with check (true);
+-- Users can update their own ratings
+drop policy if exists ratings_update_own on public.product_ratings;
+create policy ratings_update_own on public.product_ratings for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- Users can delete their own ratings
+drop policy if exists ratings_delete_own on public.product_ratings;
+create policy ratings_delete_own on public.product_ratings for delete using (user_id = auth.uid());
 
 -- Storage policies are configured separately in the dashboard for bucket namapps

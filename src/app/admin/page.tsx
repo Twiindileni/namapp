@@ -17,6 +17,8 @@ interface Stats {
   totalOrders: number
   pendingOrders: number
   totalOrderValue: number
+  totalRatings: number
+  averageRating: number
 }
 
 export default function AdminDashboardPage() {
@@ -30,7 +32,9 @@ export default function AdminDashboardPage() {
     pendingProducts: 0,
     totalOrders: 0,
     pendingOrders: 0,
-    totalOrderValue: 0
+    totalOrderValue: 0,
+    totalRatings: 0,
+    averageRating: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -72,6 +76,17 @@ export default function AdminDashboardPage() {
         const pendingOrders = (ordersData || []).filter((o: any) => o.status === 'pending').length
         const totalOrderValue = (ordersData || []).reduce((sum: number, o: any) => sum + (parseFloat(o.total_amount) || 0), 0)
 
+        // Ratings data
+        const { data: ratingsData, error: ratingsError } = await supabase
+          .from('product_ratings')
+          .select('rating')
+        if (ratingsError) console.warn('Ratings fetch error:', ratingsError)
+
+        const totalRatings = ratingsData?.length || 0
+        const averageRating = totalRatings > 0 
+          ? (ratingsData || []).reduce((sum: number, r: any) => sum + r.rating, 0) / totalRatings 
+          : 0
+
         setStats({
           totalUsers: usersCount ?? 0,
           totalApps,
@@ -81,7 +96,9 @@ export default function AdminDashboardPage() {
           pendingProducts,
           totalOrders,
           pendingOrders,
-          totalOrderValue
+          totalOrderValue,
+          totalRatings,
+          averageRating
         })
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -162,6 +179,25 @@ export default function AdminDashboardPage() {
               <dt className="truncate text-sm font-medium text-gray-500">Total Order Value</dt>
               <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">N$ {stats.totalOrderValue.toFixed(2)}</dd>
             </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Total Ratings</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.totalRatings}</dd>
+            </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Average Rating</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
+                {stats.averageRating > 0 ? (
+                  <div className="flex items-center">
+                    <span>{stats.averageRating.toFixed(1)}</span>
+                    <svg className="ml-1 w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                ) : (
+                  'No ratings'
+                )}
+              </dd>
+            </div>
           </div>
 
           <div className="mt-8">
@@ -193,6 +229,13 @@ export default function AdminDashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Orders</span>
+              </Link>
+
+              <Link href="/admin/ratings" className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Ratings</span>
               </Link>
             </div>
           </div>

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import ImageLightbox from '@/components/common/ImageLightbox'
 import OrderForm from '@/components/orders/OrderForm'
+import ProductRating from '@/components/products/ProductRating'
 
 interface Product {
   id: string
@@ -91,6 +92,12 @@ export default function ProductsPage() {
                       <span className="text-sm font-semibold text-indigo-700">N$ {p.price_nad.toFixed(2)}</span>
                     </div>
                     <p className="mt-2 text-sm text-gray-600 line-clamp-3">{p.description}</p>
+                    
+                    {/* Rating Display */}
+                    <div className="mt-3">
+                      <ProductRating productId={p.id} compact={true} />
+                    </div>
+                    
                     <p className="mt-3 text-xs text-gray-400">{new Date(p.created_at).toLocaleString()}</p>
                     
                     <div className="mt-4 flex gap-2">
