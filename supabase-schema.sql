@@ -57,11 +57,31 @@ create table if not exists public.products (
 	created_at timestamptz default now()
 );
 
+-- Orders
+create table if not exists public.orders (
+	id uuid primary key default uuid_generate_v4(),
+	name text not null,
+	phone text not null,
+	delivery_address text not null,
+	delivery_fee_option text not null check (delivery_fee_option in ('windhoek', 'out_of_windhoek')),
+	preferred_contact text not null check (preferred_contact in ('phone', 'email')),
+	order_date date not null,
+	special_request text,
+	product_id uuid not null references public.products(id) on delete cascade,
+	product_name text not null,
+	product_price numeric(12,2) not null,
+	total_amount numeric(12,2) not null,
+	status text not null default 'pending' check (status in ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
+	created_at timestamptz default now(),
+	updated_at timestamptz default now()
+);
+
 -- Basic RLS
 alter table public.users enable row level security;
 alter table public.apps enable row level security;
 alter table public.app_screenshots enable row level security;
 alter table public.products enable row level security;
+alter table public.orders enable row level security;
 
 -- Apps policies
 drop policy if exists apps_read_all on public.apps;
@@ -111,5 +131,20 @@ create policy products_insert_own on public.products for insert to authenticated
 drop policy if exists products_update_own on public.products;
 create policy products_update_own on public.products for update to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 -- Admin updates (including status) - handled via PostgREST role; simplest is to elevate via RPC or use service role on server only.
+
+-- Orders policies
+-- Anyone can create orders (public access)
+drop policy if exists orders_insert_public on public.orders;
+create policy orders_insert_public on public.orders for insert to authenticated with check (true);
+-- Admin can read all orders
+drop policy if exists orders_read_admin on public.orders;
+create policy orders_read_admin on public.orders for select to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
+-- Admin can update order status
+drop policy if exists orders_update_admin on public.orders;
+create policy orders_update_admin on public.orders for update to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
 
 -- Storage policies are configured separately in the dashboard for bucket namapps

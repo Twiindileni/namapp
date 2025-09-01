@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import ImageLightbox from '@/components/common/ImageLightbox'
+import OrderForm from '@/components/orders/OrderForm'
 
 interface Product {
   id: string
@@ -20,6 +21,7 @@ interface Product {
 export default function ProductDetails({ productId }: { productId: string }) {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showOrderForm, setShowOrderForm] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -71,15 +73,33 @@ export default function ProductDetails({ productId }: { productId: string }) {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-                <div className="mt-2 text-indigo-700 font-semibold">N$ {product.price_nad.toFixed(2)}</div>
+                <div className="mt-2 text-indigo-700 font-semibold text-xl">N$ {product.price_nad.toFixed(2)}</div>
                 <p className="mt-4 text-gray-700 whitespace-pre-wrap">{product.description}</p>
                 <p className="mt-4 text-sm text-gray-400">{new Date(product.created_at).toLocaleString()}</p>
+                
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowOrderForm(true)}
+                    className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    Order Now - N$ {product.price_nad.toFixed(2)}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </main>
       <Footer />
+      
+      {showOrderForm && product && (
+        <OrderForm
+          productId={product.id}
+          productName={product.name}
+          productPrice={product.price_nad}
+          onClose={() => setShowOrderForm(false)}
+        />
+      )}
     </div>
   )
 }
