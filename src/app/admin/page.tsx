@@ -14,6 +14,9 @@ interface Stats {
   totalDownloads: number
   totalProducts: number
   pendingProducts: number
+  totalOrders: number
+  pendingOrders: number
+  totalOrderValue: number
 }
 
 export default function AdminDashboardPage() {
@@ -24,7 +27,10 @@ export default function AdminDashboardPage() {
     pendingApps: 0,
     totalDownloads: 0,
     totalProducts: 0,
-    pendingProducts: 0
+    pendingProducts: 0,
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalOrderValue: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -56,13 +62,26 @@ export default function AdminDashboardPage() {
         const totalProducts = productsData?.length || 0
         const pendingProducts = (productsData || []).filter((p: any) => p.status === 'pending').length
 
+        // Orders data
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('status, total_amount')
+        if (ordersError) console.warn('Orders fetch error:', ordersError)
+
+        const totalOrders = ordersData?.length || 0
+        const pendingOrders = (ordersData || []).filter((o: any) => o.status === 'pending').length
+        const totalOrderValue = (ordersData || []).reduce((sum: number, o: any) => sum + (parseFloat(o.total_amount) || 0), 0)
+
         setStats({
           totalUsers: usersCount ?? 0,
           totalApps,
           pendingApps,
           totalDownloads,
           totalProducts,
-          pendingProducts
+          pendingProducts,
+          totalOrders,
+          pendingOrders,
+          totalOrderValue
         })
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -106,7 +125,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
               <dt className="truncate text-sm font-medium text-gray-500">Total Users</dt>
               <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.totalUsers}</dd>
@@ -131,11 +150,23 @@ export default function AdminDashboardPage() {
               <dt className="truncate text-sm font-medium text-gray-500">Pending Products</dt>
               <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.pendingProducts}</dd>
             </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Total Orders</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.totalOrders}</dd>
+            </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Pending Orders</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.pendingOrders}</dd>
+            </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Total Order Value</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">N$ {stats.totalOrderValue.toFixed(2)}</dd>
+            </div>
           </div>
 
           <div className="mt-8">
             <h2 className="text-base font-semibold leading-6 text-gray-900">Quick Actions</h2>
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <Link href="/admin/users" className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -155,6 +186,13 @@ export default function AdminDashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4m-2 4h12a2 2 0 002-2V9a2 2 0 00-2-2H6a2 2 0 00-2 2v4a2 2 0 002 2z" />
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Products</span>
+              </Link>
+
+              <Link href="/admin/orders" className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Orders</span>
               </Link>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import ImageLightbox from '@/components/common/ImageLightbox'
+import OrderForm from '@/components/orders/OrderForm'
 
 interface Product {
   id: string
@@ -21,6 +22,8 @@ interface Product {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [showOrderForm, setShowOrderForm] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const { user, userRole } = useAuth()
 
   const load = async () => {
@@ -44,6 +47,13 @@ export default function ProductsPage() {
 
   const canAdd = !!user && (userRole === 'developer' || userRole === 'admin')
 
+  const handleOrderClick = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setSelectedProduct(product)
+    setShowOrderForm(true)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -65,26 +75,57 @@ export default function ProductsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((p) => (
-                <Link key={p.id} href={`/products/${p.id}`} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
-                  {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="w-full h-48 object-cover" />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">No image</div>
-                  )}
+                <div key={p.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
+                  <Link href={`/products/${p.id}`}>
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} className="w-full h-48 object-cover" />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">No image</div>
+                    )}
+                  </Link>
                   <div className="p-5">
                     <div className="flex justify-between items-start">
-                      <h3 className="text-lg font-medium text-gray-900">{p.name}</h3>
+                      <Link href={`/products/${p.id}`} className="text-lg font-medium text-gray-900 hover:text-indigo-600">
+                        {p.name}
+                      </Link>
                       <span className="text-sm font-semibold text-indigo-700">N$ {p.price_nad.toFixed(2)}</span>
                     </div>
                     <p className="mt-2 text-sm text-gray-600 line-clamp-3">{p.description}</p>
                     <p className="mt-3 text-xs text-gray-400">{new Date(p.created_at).toLocaleString()}</p>
+                    
+                    <div className="mt-4 flex gap-2">
+                      <Link
+                        href={`/products/${p.id}`}
+                        className="flex-1 text-center px-3 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        View Details
+                      </Link>
+                      <button
+                        onClick={(e) => handleOrderClick(e, p)}
+                        className="flex-1 px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        Order Now
+                      </button>
+                    </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
         </div>
       </main>
+      
+      {showOrderForm && selectedProduct && (
+        <OrderForm
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          productPrice={selectedProduct.price_nad}
+          onClose={() => {
+            setShowOrderForm(false)
+            setSelectedProduct(null)
+          }}
+        />
+      )}
     </div>
   )
 }
