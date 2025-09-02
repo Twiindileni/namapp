@@ -109,6 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If email confirmation is required, route to verify page
       if (!newUser.email_confirmed_at) {
         router.push('/verify-email')
+      } else {
+        // After successful signup for already-confirmed emails, land on home
+        router.push('/')
       }
 
       return newUser
@@ -130,7 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      router.push('/dashboard')
+      // After login, land on home instead of dashboard
+      router.push('/')
     } catch (error: any) {
       throw new Error(error.message || 'Failed to login')
     }
