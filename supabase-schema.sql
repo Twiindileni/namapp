@@ -177,3 +177,49 @@ drop policy if exists ratings_delete_own on public.product_ratings;
 create policy ratings_delete_own on public.product_ratings for delete using (user_id = auth.uid());
 
 -- Storage policies are configured separately in the dashboard for bucket namapps
+
+-- Forex Signals
+create table if not exists public.forex_signals (
+  id uuid primary key default uuid_generate_v4(),
+  instrument text not null,
+  side text not null check (side in ('BUY','SELL')),
+  entry_point numeric(18,6) not null,
+  take_profit_1 numeric(18,6),
+  take_profit_2 numeric(18,6),
+  take_profit_3 numeric(18,6),
+  rating integer check (rating between 1 and 5),
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  created_by uuid not null references public.users(id) on delete set null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.forex_signals enable row level security;
+
+-- Public can read only approved signals
+drop policy if exists forex_signals_read_public on public.forex_signals;
+create policy forex_signals_read_public on public.forex_signals for select using (status = 'approved');
+
+-- Admins can read all
+drop policy if exists forex_signals_read_admin on public.forex_signals;
+create policy forex_signals_read_admin on public.forex_signals for select to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
+
+-- Admins can insert
+drop policy if exists forex_signals_insert_admin on public.forex_signals;
+create policy forex_signals_insert_admin on public.forex_signals for insert to authenticated with check (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
+
+-- Admins can update (approve/reject/edit)
+drop policy if exists forex_signals_update_admin on public.forex_signals;
+create policy forex_signals_update_admin on public.forex_signals for update to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
+
+-- Admins can delete
+drop policy if exists forex_signals_delete_admin on public.forex_signals;
+create policy forex_signals_delete_admin on public.forex_signals for delete to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);

@@ -31,6 +31,7 @@ export default function Navbar() {
     { name: 'Apps', href: '/apps', current: false },
     { name: 'Categories', href: '/categories', current: false },
     { name: 'Products', href: '/products', current: false },
+    { name: 'Signal', href: '/signal', current: false },
   ]
 
   return (

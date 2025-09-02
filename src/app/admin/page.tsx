@@ -237,6 +237,13 @@ export default function AdminDashboardPage() {
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Ratings</span>
               </Link>
+
+              <Link href="/admin/signals" className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-6 8H9m12-6v6a2 2 0 01-2 2H5a2 2 0 01-2-2V10" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Signals</span>
+              </Link>
             </div>
           </div>
         </div>

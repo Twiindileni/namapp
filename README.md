@@ -17,7 +17,7 @@ A modern web platform for discovering and sharing Android applications created b
 
 - **Frontend**: Next.js 14, React, TypeScript
 - **Styling**: Tailwind CSS
-- **Backend**: Firebase (Authentication, Firestore, Storage)
+- **Backend**: Superbase (Authentication, Suoerbase, Storage)
 - **Deployment**: Vercel
 
 ## Getting Started
@@ -78,6 +78,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_twitter)
+Cleo Thomas - [@cleothomas](https://twitter.com/your_twitter)
 
 Project Link: [https://github.com/Twiindileni/namapp](https://github.com/Twiindileni/namapp)
