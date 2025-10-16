@@ -32,6 +32,8 @@ export default function Navbar() {
     { name: 'Categories', href: '/categories', current: false },
     { name: 'Products', href: '/products', current: false },
     { name: 'Signal', href: '/signal', current: false },
+    { name: 'Borrow', href: '/borrow', current: false },
+    { name: 'Contact', href: '/contact', current: false },
   ]
 
   return (

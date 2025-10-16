@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Purpose Technology</string>
+    <string name="title_activity_main">Purpose Technology</string>
+    <string name="package_name">com.purpose.technology</string>
+    <string name="custom_url_scheme">com.purpose.technology</string>
+</resources>

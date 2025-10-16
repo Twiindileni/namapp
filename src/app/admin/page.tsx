@@ -19,6 +19,8 @@ interface Stats {
   totalOrderValue: number
   totalRatings: number
   averageRating: number
+  totalContacts: number
+  newContacts: number
 }
 
 export default function AdminDashboardPage() {
@@ -34,7 +36,9 @@ export default function AdminDashboardPage() {
     pendingOrders: 0,
     totalOrderValue: 0,
     totalRatings: 0,
-    averageRating: 0
+    averageRating: 0,
+    totalContacts: 0,
+    newContacts: 0
   })
   const [loading, setLoading] = useState(true)
 
@@ -87,6 +91,16 @@ export default function AdminDashboardPage() {
           ? (ratingsData || []).reduce((sum: number, r: any) => sum + r.rating, 0) / totalRatings 
           : 0
 
+        // Contact messages counts
+        const { count: contactsCount } = await supabase
+          .from('contact_messages')
+          .select('id', { count: 'exact', head: true })
+
+        const { count: newContactsCount } = await supabase
+          .from('contact_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'new')
+
         setStats({
           totalUsers: usersCount ?? 0,
           totalApps,
@@ -98,7 +112,9 @@ export default function AdminDashboardPage() {
           pendingOrders,
           totalOrderValue,
           totalRatings,
-          averageRating
+          averageRating,
+          totalContacts: contactsCount ?? 0,
+          newContacts: newContactsCount ?? 0
         })
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -198,6 +214,14 @@ export default function AdminDashboardPage() {
                 )}
               </dd>
             </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Total Contacts</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.totalContacts}</dd>
+            </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">New Contacts</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.newContacts}</dd>
+            </div>
           </div>
 
           <div className="mt-8">
@@ -231,6 +255,13 @@ export default function AdminDashboardPage() {
                 <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Orders</span>
               </Link>
 
+              <Link href="/admin/loans" className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.343-3 3v5H7a2 2 0 01-2-2V9a2 2 0 012-2h6a2 2 0 012 2v1m-3 8h6a2 2 0 002-2v-5a2 2 0 00-2-2h-3" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Loans</span>
+              </Link>
+
               <Link href="/admin/ratings" className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -243,6 +274,13 @@ export default function AdminDashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-6 8H9m12-6v6a2 2 0 01-2 2H5a2 2 0 01-2-2V10" />
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Signals</span>
+              </Link>
+
+              <Link href="/admin/contacts" className="relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l.8-4A8.94 8.94 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">Manage Contacts</span>
               </Link>
             </div>
           </div>

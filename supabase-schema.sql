@@ -223,3 +223,58 @@ drop policy if exists forex_signals_delete_admin on public.forex_signals;
 create policy forex_signals_delete_admin on public.forex_signals for delete to authenticated using (
   exists (select 1 from public.users where id = auth.uid() and role = 'admin')
 );
+
+-- Loans
+create table if not exists public.loans (
+  id uuid primary key default uuid_generate_v4(),
+  applicant_name text not null,
+  phone text not null,
+  email text,
+  amount numeric(12,2) not null check (amount > 0),
+  repayment_amount numeric(12,2) not null check (repayment_amount >= amount),
+  collateral_type text check (collateral_type in ('fridge','phone','laptop')),
+  collateral_description text,
+  status text not null default 'pending' check (status in ('pending','approved','rejected','disbursed','repaid','defaulted')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.loan_collaterals (
+  id uuid primary key default uuid_generate_v4(),
+  loan_id uuid not null references public.loans(id) on delete cascade,
+  type text not null check (type in ('fridge','phone','laptop')),
+  description text,
+  estimated_value numeric(12,2),
+  created_at timestamptz default now()
+);
+
+alter table public.loans enable row level security;
+alter table public.loan_collaterals enable row level security;
+
+-- Public can insert loan requests
+drop policy if exists loans_insert_public on public.loans;
+create policy loans_insert_public on public.loans for insert with check (true);
+
+-- Admins can read and update all loans
+drop policy if exists loans_read_admin on public.loans;
+create policy loans_read_admin on public.loans for select to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
+drop policy if exists loans_update_admin on public.loans;
+create policy loans_update_admin on public.loans for update to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
+
+-- Collaterals policies
+drop policy if exists loan_collaterals_insert_public on public.loan_collaterals;
+create policy loan_collaterals_insert_public on public.loan_collaterals for insert with check (true);
+drop policy if exists loan_collaterals_read_admin on public.loan_collaterals;
+create policy loan_collaterals_read_admin on public.loan_collaterals for select to authenticated using (
+  exists (select 1 from public.users where id = auth.uid() and role = 'admin')
+);
+
+-- Lifecycle timestamps for loans (idempotent)
+alter table public.loans add column if not exists approved_at timestamptz;
+alter table public.loans add column if not exists disbursed_at timestamptz;
+alter table public.loans add column if not exists repaid_at timestamptz;
+alter table public.loans add column if not exists defaulted_at timestamptz;

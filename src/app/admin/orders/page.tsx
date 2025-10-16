@@ -29,6 +29,10 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'>('all')
+  const [smsOpen, setSmsOpen] = useState(false)
+  const [smsTo, setSmsTo] = useState('')
+  const [smsBody, setSmsBody] = useState('')
+  const [sending, setSending] = useState(false)
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -110,6 +114,33 @@ export default function AdminOrdersPage() {
 
   const getDeliveryFee = (option: string) => {
     return option === 'windhoek' ? 'N$40.00' : 'N$70.00'
+  }
+
+  const openSms = (to: string, defaultBody: string) => {
+    setSmsTo(to)
+    setSmsBody(defaultBody)
+    setSmsOpen(true)
+  }
+
+  const sendSms = async () => {
+    if (!smsTo || !smsBody) return
+    setSending(true)
+    try {
+      const res = await fetch('/api/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: smsTo, message: smsBody })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Failed to send')
+      toast.success('SMS sent')
+      setSmsOpen(false)
+    } catch (e: any) {
+      console.error(e)
+      toast.error(e.message || 'Failed to send SMS')
+    } finally {
+      setSending(false)
+    }
   }
 
   if (loading) {
@@ -256,6 +287,13 @@ export default function AdminOrdersPage() {
                             Mark Delivered
                           </button>
                         )}
+                        {/* SMS action */}
+                        <button
+                          onClick={() => openSms(order.phone, `Hi ${order.name}, your order for ${order.product_name} is ${order.status}. Thank you!`)}
+                          className="px-3 py-1 text-xs font-medium text-white bg-gray-700 rounded hover:bg-gray-800"
+                        >
+                          Text Customer
+                        </button>
                       </div>
                     </div>
                   </li>
@@ -265,6 +303,27 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       </main>
+      {smsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow">
+            <h3 className="text-lg font-semibold text-gray-900">Send SMS</h3>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-sm text-gray-600">To</label>
+                <input value={smsTo} onChange={(e) => setSmsTo(e.target.value)} placeholder="+264..." className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600">Message</label>
+                <textarea value={smsBody} onChange={(e) => setSmsBody(e.target.value)} rows={4} className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setSmsOpen(false)} className="px-3 py-2 text-sm rounded-md border">Cancel</button>
+                <button onClick={sendSms} disabled={sending} className="px-3 py-2 text-sm rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60">{sending ? 'Sending…' : 'Send'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
