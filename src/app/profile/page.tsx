@@ -24,6 +24,26 @@ interface UserProfile {
   permissions?: string[]
 }
 
+interface Booking {
+  id: string
+  event_type: string
+  event_date: string
+  event_location: string | null
+  preferred_package_name: string | null
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  created_at: string
+}
+
+interface Loan {
+  id: string
+  applicant_name: string
+  amount: number
+  repayment_amount: number
+  collateral_type: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'disbursed' | 'repaid' | 'defaulted'
+  created_at: string
+}
+
 const inputStyles = `
   block w-full rounded-md border-gray-300 shadow-sm
   focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
@@ -65,6 +85,10 @@ export default function ProfilePage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loans, setLoans] = useState<Loan[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(true)
+  const [loadingLoans, setLoadingLoans] = useState(true)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -117,7 +141,53 @@ export default function ProfilePage() {
     }
 
     fetchProfile()
+    loadBookings()
+    loadLoans()
   }, [user, userRole])
+
+  const loadBookings = async () => {
+    if (!user?.email) {
+      setLoadingBookings(false)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('photography_bookings')
+        .select('*')
+        .eq('customer_email', user.email)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setBookings(data || [])
+    } catch (error) {
+      console.error('Error loading bookings:', error)
+    } finally {
+      setLoadingBookings(false)
+    }
+  }
+
+  const loadLoans = async () => {
+    if (!user?.email) {
+      setLoadingLoans(false)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('loans')
+        .select('*')
+        .eq('email', user.email)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setLoans(data || [])
+    } catch (error) {
+      console.error('Error loading loans:', error)
+    } finally {
+      setLoadingLoans(false)
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -252,6 +322,154 @@ export default function ProfilePage() {
                   </div>
                 </form>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Photography Bookings Section */}
+        <div className="mt-6">
+          <div className="glass-effect rounded-lg">
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <svg className="w-6 h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                My Photography Bookings
+              </h3>
+              
+              {loadingBookings ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : bookings.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-600">No photography bookings yet</p>
+                  <a href="/categories" className="mt-4 inline-block text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                    Book a photoshoot →
+                  </a>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Package</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {bookings.map((booking) => (
+                        <tr key={booking.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{booking.event_type}</div>
+                            {booking.event_location && (
+                              <div className="text-sm text-gray-500">{booking.event_location}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(booking.event_date).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {booking.preferred_package_name || 'Not selected'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                              booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {booking.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(booking.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Loan Applications Section */}
+        <div className="mt-6">
+          <div className="glass-effect rounded-lg">
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <svg className="w-6 h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                My Loan Applications
+              </h3>
+              
+              {loadingLoans ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : loans.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-600">No loan applications yet</p>
+                  <a href="/loans" className="mt-4 inline-block text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                    Apply for a loan →
+                  </a>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Repayment</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collateral</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {loans.map((loan) => (
+                        <tr key={loan.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            N${loan.amount.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            N${loan.repayment_amount.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                            {loan.collateral_type || 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              loan.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              loan.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              loan.status === 'disbursed' ? 'bg-blue-100 text-blue-800' :
+                              loan.status === 'repaid' ? 'bg-purple-100 text-purple-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {loan.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(loan.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>

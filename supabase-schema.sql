@@ -255,6 +255,12 @@ alter table public.loan_collaterals enable row level security;
 drop policy if exists loans_insert_public on public.loans;
 create policy loans_insert_public on public.loans for insert with check (true);
 
+-- Customers can view their own loans by email
+drop policy if exists loans_read_own on public.loans;
+create policy loans_read_own on public.loans for select to authenticated using (
+  email = (select email from auth.users where id = auth.uid())
+);
+
 -- Admins can read and update all loans
 drop policy if exists loans_read_admin on public.loans;
 create policy loans_read_admin on public.loans for select to authenticated using (

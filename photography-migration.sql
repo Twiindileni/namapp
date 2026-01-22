@@ -211,3 +211,9 @@ create trigger update_photography_bookings_updated_at
   before update on public.photography_bookings
   for each row
   execute function public.update_photography_bookings_updated_at();
+
+-- Allow customers to view their own loan applications by email
+drop policy if exists loans_read_own on public.loans;
+create policy loans_read_own on public.loans for select to authenticated using (
+  email = (select email from auth.users where id = auth.uid())
+);
