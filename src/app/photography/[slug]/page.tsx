@@ -110,12 +110,21 @@ export default function CategoryGalleryPage() {
           </Link>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">{category.name}</h1>
           <p className="text-xl text-indigo-100 max-w-3xl">{category.description}</p>
-          <div className="mt-6">
+          <div className="mt-6 flex gap-4">
             <Link
-              href="/contact"
+              href={`/photography/book?category=${encodeURIComponent(category.name)}`}
               className="inline-flex items-center px-6 py-3 bg-white text-indigo-600 rounded-full font-semibold hover:bg-gray-100 transition-all"
             >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               Book a Session
+            </Link>
+            <Link
+              href="/categories#pricing"
+              className="inline-flex items-center px-6 py-3 border-2 border-white text-white rounded-full font-semibold hover:bg-white hover:text-indigo-600 transition-all"
+            >
+              View Pricing
             </Link>
           </div>
         </div>

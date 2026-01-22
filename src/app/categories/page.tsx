@@ -96,7 +96,7 @@ export default function PhotographyPage() {
     },
   ]
 
-  const [packages, setPackages] = useState<PricingPackage[]>(defaultPackages)
+  const [packages, setPackages] = useState<PricingPackage[]>([])
 
   useEffect(() => {
     // Set page title
@@ -140,9 +140,11 @@ export default function PhotographyPage() {
         })
         setCategories(processedCategories)
         
-        // Use database packages if available, otherwise keep defaults
+        // Use database packages if available, otherwise use defaults
         if (packagesData && packagesData.length > 0) {
           setPackages(packagesData)
+        } else {
+          setPackages(defaultPackages)
         }
       } catch (error) {
         console.error('Error loading photography data:', error)
@@ -322,7 +324,7 @@ export default function PhotographyPage() {
                             View Gallery
                           </Link>
                           <Link
-                            href="/contact"
+                            href={`/photography/book?category=${encodeURIComponent(category.name)}`}
                             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-full text-sm font-semibold transition-all transform group-hover:scale-105"
                           >
                             Book Now
@@ -425,7 +427,7 @@ export default function PhotographyPage() {
                   </ul>
 
                   <Link
-                    href="/contact"
+                    href={`/photography/book?package=${pkg.id}`}
                     className={`block w-full py-3 px-6 text-center rounded-full font-semibold transition-all transform hover:scale-105 ${
                       pkg.is_popular
                         ? 'bg-white text-indigo-600 hover:bg-gray-100'

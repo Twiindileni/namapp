@@ -130,3 +130,84 @@ INSERT INTO public.photography_packages (name, price, duration, features, is_pop
   ('Standard Package', 1200, '4 hours', '["4 hours of photography", "150 edited high-resolution photos", "Online gallery", "Up to 2 locations", "Digital download", "10 printed photos (5x7)", "Pre-event consultation"]', true, 2),
   ('Premium Package', 2500, 'Full day', '["Full day coverage (8+ hours)", "300+ edited high-resolution photos", "Premium online gallery", "Unlimited locations", "Digital download", "30 printed photos (various sizes)", "Photo album (20 pages)", "Pre & post-event consultation", "Second photographer available"]', false, 3)
 ON CONFLICT DO NOTHING;
+
+-- Photography Bookings
+create table if not exists public.photography_bookings (
+  id uuid default gen_random_uuid() primary key,
+  customer_name text not null,
+  customer_email text not null,
+  customer_phone text not null,
+  event_type text not null,
+  event_date date not null,
+  event_location text,
+  package_id uuid references public.photography_packages(id) on delete set null,
+  preferred_package_name text,
+  guest_count integer,
+  special_requests text,
+  status text default 'pending' check (status in ('pending', 'confirmed', 'cancelled', 'completed')),
+  admin_notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS
+alter table public.photography_bookings enable row level security;
+
+-- Customers can create their own bookings
+create policy "Anyone can create bookings"
+  on public.photography_bookings for insert
+  to public
+  with check (true);
+
+-- Customers can view their own bookings by email
+create policy "Customers can view own bookings"
+  on public.photography_bookings for select
+  to public
+  using (customer_email = current_setting('request.jwt.claims', true)::json->>'email');
+
+-- Admins can view all bookings
+create policy "Admins can view all bookings"
+  on public.photography_bookings for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Admins can update all bookings
+create policy "Admins can update bookings"
+  on public.photography_bookings for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Admins can delete bookings
+create policy "Admins can delete bookings"
+  on public.photography_bookings for delete
+  to authenticated
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Create updated_at trigger
+create or replace function public.update_photography_bookings_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = timezone('utc'::text, now());
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger update_photography_bookings_updated_at
+  before update on public.photography_bookings
+  for each row
+  execute function public.update_photography_bookings_updated_at();

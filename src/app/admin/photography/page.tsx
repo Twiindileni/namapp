@@ -16,6 +16,8 @@ interface PhotoStats {
   activePackages: number
   totalHeroSlides: number
   activeHeroSlides: number
+  totalBookings: number
+  pendingBookings: number
 }
 
 export default function AdminPhotographyPage() {
@@ -29,6 +31,8 @@ export default function AdminPhotographyPage() {
     activePackages: 0,
     totalHeroSlides: 0,
     activeHeroSlides: 0,
+    totalBookings: 0,
+    pendingBookings: 0,
   })
   const [loading, setLoading] = useState(true)
 
@@ -63,6 +67,13 @@ export default function AdminPhotographyPage() {
         const totalHeroSlides = slidesData?.length || 0
         const activeHeroSlides = slidesData?.filter(s => s.is_active).length || 0
 
+        // Bookings
+        const { data: bookingsData } = await supabase
+          .from('photography_bookings')
+          .select('status')
+        const totalBookings = bookingsData?.length || 0
+        const pendingBookings = bookingsData?.filter(b => b.status === 'pending').length || 0
+
         setStats({
           totalCategories,
           activeCategories,
@@ -72,6 +83,8 @@ export default function AdminPhotographyPage() {
           activePackages,
           totalHeroSlides,
           activeHeroSlides,
+          totalBookings,
+          pendingBookings,
         })
       } catch (error) {
         console.error('Error fetching photography stats:', error)
@@ -110,7 +123,7 @@ export default function AdminPhotographyPage() {
                 Photography Management
               </h1>
               <p className="mt-2 text-sm text-gray-700">
-                Manage your photography portfolio, categories, pricing and hero slides
+                Manage your photography portfolio, categories, pricing, bookings and hero slides
               </p>
             </div>
             <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -129,7 +142,7 @@ export default function AdminPhotographyPage() {
           </div>
 
           {/* Stats Grid */}
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
             <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
               <dt className="truncate text-sm font-medium text-gray-500">Categories</dt>
               <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
@@ -161,12 +174,20 @@ export default function AdminPhotographyPage() {
               </dd>
               <p className="text-xs text-gray-500 mt-1">Active / Total</p>
             </div>
+
+            <div className="overflow-hidden rounded-lg bg-yellow-50 px-4 py-5 shadow sm:p-6 border-2 border-yellow-200">
+              <dt className="truncate text-sm font-medium text-yellow-800">Bookings</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-yellow-900">
+                {stats.totalBookings}
+              </dd>
+              <p className="text-xs text-yellow-700 mt-1">{stats.pendingBookings} pending</p>
+            </div>
           </div>
 
           {/* Quick Actions */}
           <div className="mt-8">
             <h2 className="text-base font-semibold leading-6 text-gray-900">Management Tools</h2>
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
               
               <Link 
                 href="/admin/photography/categories" 
@@ -210,6 +231,22 @@ export default function AdminPhotographyPage() {
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-gray-900">Hero Slides</span>
                 <p className="text-xs text-gray-500 mt-1">Manage homepage slider</p>
+              </Link>
+
+              <Link 
+                href="/admin/photography/bookings" 
+                className="relative block w-full rounded-lg border-2 border-dashed border-yellow-300 p-12 text-center hover:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-all hover:bg-yellow-50"
+              >
+                {stats.pendingBookings > 0 && (
+                  <span className="absolute top-2 right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-yellow-500 rounded-full">
+                    {stats.pendingBookings}
+                  </span>
+                )}
+                <svg className="mx-auto h-12 w-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">Bookings</span>
+                <p className="text-xs text-gray-500 mt-1">View customer requests</p>
               </Link>
 
             </div>
