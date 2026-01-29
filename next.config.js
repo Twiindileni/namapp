@@ -17,8 +17,10 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  // Turbopack config (empty to silence Next.js 16 warning)
+  turbopack: {},
   webpack: (config, { isServer }) => {
-    // Fix for Leaflet in Next.js
+    // Fix for Leaflet in Next.js (only used if webpack mode is explicitly enabled)
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
