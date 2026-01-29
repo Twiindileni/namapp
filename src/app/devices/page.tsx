@@ -1,24 +1,13 @@
 'use client'
 
-'use client'
-
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import Navbar from '@/components/layout/Navbar'
-import dynamic from 'next/dynamic'
-
-// Dynamic imports to avoid SSR issues with Leaflet
-const DeviceMap = dynamic(() => import('@/components/DeviceMap'), { 
-  ssr: false,
-  loading: () => <div className="w-full h-[500px] bg-gray-100 animate-pulse rounded-lg"></div>
-})
-const MapPicker = dynamic(() => import('@/components/MapPicker'), { 
-  ssr: false,
-  loading: () => <div className="w-full h-[400px] bg-gray-100 animate-pulse rounded-lg"></div>
-})
+import DeviceMap from '@/components/DeviceMap'
+import MapPicker from '@/components/MapPicker'
 
 interface Device {
   id: string
@@ -103,7 +92,7 @@ export default function MyDevicesPage() {
     })
   }
 
-  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+  const handleLocationSelect = (lat: number | null, lng: number | null, address: string) => {
     setReportForm(prev => ({
       ...prev,
       incident_location: address,

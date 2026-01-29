@@ -1,112 +1,117 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
-
-// Fix for default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+import { useState } from 'react'
 
 interface MapPickerProps {
-  onLocationSelect: (lat: number, lng: number, address: string) => void
+  onLocationSelect: (lat: number | null, lng: number | null, address: string) => void
   initialLat?: number
   initialLng?: number
 }
 
-function LocationMarker({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null)
+export default function MapPicker({ onLocationSelect }: MapPickerProps) {
+  const [address, setAddress] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState<string>('')
 
-  const map = useMapEvents({
-    click(e) {
-      const { lat, lng } = e.latlng
-      setPosition([lat, lng])
-      onLocationSelect(lat, lng)
-    },
-  })
-
-  useEffect(() => {
-    // Get user's current location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude
-          const lng = pos.coords.longitude
-          setPosition([lat, lng])
-          
-          // Pan to user's location
-          setTimeout(() => {
-            if (map) {
-              map.setView([lat, lng], 13, { animate: true })
-            }
-          }, 100)
-        },
-        (error) => {
-          console.log('Geolocation not available:', error.message)
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setStatus('Geolocation is not supported by your browser.')
+      return
+    }
+    setLoading(true)
+    setStatus('Getting your location...')
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+          )
+          const data = await res.json()
+          const addr = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+          setAddress(addr)
+          onLocationSelect(lat, lng, addr)
+          setStatus('Location set successfully.')
+        } catch {
+          onLocationSelect(lat, lng, `${lat.toFixed(4)}, ${lng.toFixed(4)}`)
+          setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
+          setStatus('Location set (coordinates only).')
         }
-      )
-    }
-  }, [map])
-
-  return position === null ? null : (
-    <Marker position={position}>
-      <Popup>Click on map to set last known location</Popup>
-    </Marker>
-  )
-}
-
-export default function MapPicker({ onLocationSelect, initialLat = -22.5609, initialLng = 17.0658 }: MapPickerProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const handleLocationSelect = async (lat: number, lng: number) => {
-    // Reverse geocoding to get address
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-      )
-      const data = await response.json()
-      const address = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-      onLocationSelect(lat, lng, address)
-    } catch (error) {
-      console.error('Error getting address:', error)
-      onLocationSelect(lat, lng, `${lat.toFixed(4)}, ${lng.toFixed(4)}`)
-    }
-  }
-
-  if (!mounted) {
-    return (
-      <div className="w-full h-[400px] bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading map...</p>
-        </div>
-      </div>
+        setLoading(false)
+      },
+      (err) => {
+        setStatus('Could not get location. Please enter it manually.')
+        setLoading(false)
+      }
     )
   }
 
+  const handleSubmitAddress = () => {
+    if (!address.trim()) {
+      setStatus('Please enter a location or use "Use my location".')
+      return
+    }
+    setLoading(true)
+    setStatus('Looking up coordinates...')
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data[0]) {
+          const lat = parseFloat(data[0].lat)
+          const lng = parseFloat(data[0].lon)
+          onLocationSelect(lat, lng, address.trim())
+          setStatus('Location set.')
+        } else {
+          setStatus('Address not found. Saving as text only.')
+          onLocationSelect(null, null, address.trim())
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        setStatus('Lookup failed. Saving as text only.')
+        onLocationSelect(null, null, address.trim())
+        setLoading(false)
+      })
+  }
+
   return (
-    <div className="w-full h-[400px] rounded-lg overflow-hidden shadow-lg border-2 border-blue-200">
-      <MapContainer
-        center={[initialLat, initialLng]}
-        zoom={13}
-        style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={true}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <LocationMarker onLocationSelect={handleLocationSelect} />
-      </MapContainer>
+    <div className="w-full rounded-lg border-2 border-blue-200 bg-white p-4 shadow-lg">
+      <p className="mb-3 text-sm text-blue-600">
+        Use your current location or enter an address below.
+      </p>
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleUseMyLocation}
+          disabled={loading}
+          className="rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Please wait...' : 'Use my current location'}
+        </button>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Or type address, e.g. City Mall, Windhoek"
+            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={handleSubmitAddress}
+            disabled={loading}
+            className="rounded-lg bg-gray-700 px-4 py-2 font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+          >
+            Set
+          </button>
+        </div>
+        {status && (
+          <p className="text-sm text-gray-600">{status}</p>
+        )}
+      </div>
     </div>
   )
 }

@@ -8,13 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import Navbar from '@/components/layout/Navbar'
-import dynamic from 'next/dynamic'
-
-// Dynamic import to avoid SSR issues with Leaflet
-const DeviceMap = dynamic(() => import('@/components/DeviceMap'), { 
-  ssr: false,
-  loading: () => <div className="w-full h-[500px] bg-gray-100 animate-pulse rounded-lg"></div>
-})
+import DeviceMap from '@/components/DeviceMap'
 
 interface Device {
   id: string
