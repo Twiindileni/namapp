@@ -217,3 +217,114 @@ drop policy if exists loans_read_own on public.loans;
 create policy loans_read_own on public.loans for select to authenticated using (
   email = (select email from auth.users where id = auth.uid())
 );
+
+-- ============================================
+-- IMEI Device Tracking System
+-- ============================================
+
+-- Registered Devices Table
+create table if not exists public.registered_devices (
+  id uuid default gen_random_uuid() primary key,
+  user_email text not null,
+  device_name text not null,
+  imei_number text not null,
+  brand text,
+  model text,
+  color text,
+  purchase_date date,
+  serial_number text,
+  device_photo_url text,
+  status text default 'active' check (status in ('active', 'lost', 'stolen', 'found', 'recovered')),
+  
+  -- Tracking request details
+  tracking_requested boolean default false,
+  tracking_request_date timestamp with time zone,
+  incident_date date,
+  incident_location text,
+  police_report_number text,
+  description text,
+  
+  -- Admin management
+  admin_notes text,
+  admin_status text default 'pending' check (admin_status in ('pending', 'investigating', 'resolved', 'closed')),
+  resolved_date timestamp with time zone,
+  
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Create index for faster lookups
+create index if not exists idx_registered_devices_user_email on public.registered_devices(user_email);
+create index if not exists idx_registered_devices_imei on public.registered_devices(imei_number);
+create index if not exists idx_registered_devices_status on public.registered_devices(status);
+create index if not exists idx_registered_devices_tracking on public.registered_devices(tracking_requested);
+
+-- Enable RLS
+alter table public.registered_devices enable row level security;
+
+-- Customers can create their own device registrations
+drop policy if exists registered_devices_insert_own on public.registered_devices;
+create policy registered_devices_insert_own on public.registered_devices 
+  for insert
+  to authenticated
+  with check (user_email = (select email from auth.users where id = auth.uid()));
+
+-- Customers can view their own devices
+drop policy if exists registered_devices_select_own on public.registered_devices;
+create policy registered_devices_select_own on public.registered_devices 
+  for select
+  to authenticated
+  using (user_email = (select email from auth.users where id = auth.uid()));
+
+-- Customers can update their own devices
+drop policy if exists registered_devices_update_own on public.registered_devices;
+create policy registered_devices_update_own on public.registered_devices 
+  for update
+  to authenticated
+  using (user_email = (select email from auth.users where id = auth.uid()));
+
+-- Customers can delete their own devices
+drop policy if exists registered_devices_delete_own on public.registered_devices;
+create policy registered_devices_delete_own on public.registered_devices 
+  for delete
+  to authenticated
+  using (user_email = (select email from auth.users where id = auth.uid()));
+
+-- Admins can view all devices
+drop policy if exists registered_devices_admin_select on public.registered_devices;
+create policy registered_devices_admin_select on public.registered_devices 
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Admins can update all devices
+drop policy if exists registered_devices_admin_update on public.registered_devices;
+create policy registered_devices_admin_update on public.registered_devices 
+  for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.users
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Create updated_at trigger
+create or replace function public.update_registered_devices_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = timezone('utc'::text, now());
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists update_registered_devices_updated_at on public.registered_devices;
+create trigger update_registered_devices_updated_at
+  before update on public.registered_devices
+  for each row
+  execute function public.update_registered_devices_updated_at();

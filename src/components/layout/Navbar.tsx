@@ -30,6 +30,7 @@ export default function Navbar() {
     { name: 'Home', href: '/', current: true },
     { name: 'Apps', href: '/apps', current: false },
     { name: 'Photography', href: '/categories', current: false },
+    { name: 'Track Device', href: '/devices', current: false },
     { name: 'Products', href: '/products', current: false },
     { name: 'Signal', href: '/signal', current: false },
     { name: 'Borrow', href: '/borrow', current: false },
@@ -96,6 +97,19 @@ export default function Navbar() {
                               )}
                             >
                               Your Profile
+                            </Link>
+                          )}
+                        </Menu.Item>
+                        <Menu.Item>
+                          {({ active }) => (
+                            <Link
+                              href="/devices"
+                              className={classNames(
+                                active ? 'bg-gray-100' : '',
+                                'block px-4 py-2 text-sm text-gray-700'
+                              )}
+                            >
+                              My Devices
                             </Link>
                           )}
                         </Menu.Item>
@@ -212,6 +226,13 @@ export default function Navbar() {
                     className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                   >
                     Your Profile
+                  </Disclosure.Button>
+                  <Disclosure.Button
+                    as={Link}
+                    href="/devices"
+                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                  >
+                    My Devices
                   </Disclosure.Button>
                   {userRole === 'developer' && (
                     <Disclosure.Button

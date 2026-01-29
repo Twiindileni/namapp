@@ -289,6 +289,13 @@ export default function AdminDashboardPage() {
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-indigo-900">Photography Portfolio</span>
               </Link>
+
+              <Link href="/admin/devices" className="relative block w-full rounded-lg border-2 border-dashed border-blue-300 p-12 text-center hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-blue-50 hover:bg-blue-100 transition-all">
+                <svg className="mx-auto h-12 w-12 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-blue-900">Device Tracking</span>
+              </Link>
             </div>
           </div>
         </div>

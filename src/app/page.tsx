@@ -33,11 +33,11 @@ export default function Home() {
             <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-xl lg:flex-shrink-0 lg:pt-8">
               <h1 className="mt-10 text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
                 Discover Amazing <span className="relative inline-block">
-                  <span className="relative z-10 bg-gradient-to-r from-[#003580] via-[#D21034] to-[#009543] bg-clip-text text-transparent animate-gradient-flow-1">Namibian</span> Apps
+                  <span className="relative z-10 bg-gradient-to-r from-[#003580] via-[#D21034] to-[#009543] bg-clip-text text-transparent animate-gradient-flow-1">Namibian</span> Technology
                 </span>
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600">
-                Explore and download amazing applications created by Namibian developers. From productivity tools to entertainment apps, find everything you need in one place.
+                Explore innovative technology solutions, apps, products, and services created by Namibian developers and entrepreneurs. Your one-stop hub for local tech excellence.
               </p>
               <div className="mt-10 flex items-center gap-x-6">
                 <Link
