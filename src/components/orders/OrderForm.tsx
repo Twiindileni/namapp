@@ -52,12 +52,12 @@ export default function OrderForm({ productId, productName, productPrice, onClos
     const { name, value } = e.target
     setFormData(prev => {
       const newData = { ...prev, [name]: value }
-      
+
       // Recalculate total when delivery option changes
       if (name === 'delivery_fee_option') {
         newData.total_amount = productPrice + deliveryFees[value as keyof typeof deliveryFees]
       }
-      
+
       return newData
     })
   }
@@ -70,9 +70,9 @@ export default function OrderForm({ productId, productName, productPrice, onClos
     console.log('Form data:', formData)
 
     try {
-      console.log('Step 1: Preparing order data...')
-      
-      const orderData = {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const baseOrderData = {
         name: formData.name,
         phone: formData.phone,
         delivery_address: formData.delivery_address,
@@ -87,29 +87,47 @@ export default function OrderForm({ productId, productName, productPrice, onClos
         status: 'pending'
       }
 
-      console.log('Step 2: Order data prepared:', orderData)
-      console.log('Product ID type:', typeof orderData.product_id)
-      console.log('Product ID value:', orderData.product_id)
+      console.log('Step 2: Order data prepared')
 
       console.log('Step 3: Calling Supabase insert...')
-      const { error } = await supabase
+
+      // Try to insert with user_email first
+      let { error } = await supabase
         .from('orders')
-        .insert(orderData)
-      
+        .insert({
+          ...baseOrderData,
+          user_email: session?.user?.email || null
+        })
+
+      // If the initial insert failed for ANY reason, retry without user_email.
+      // This covers missing column, RLS issues, or other schema mismatches.
+      if (error) {
+        console.warn('Initial order submission failed. Retrying without user_email field...')
+        console.warn('Original error:', error)
+
+        const { error: retryError } = await supabase
+          .from('orders')
+          .insert(baseOrderData)
+
+        // If the retry succeeded, we clear the error.
+        // If the retry also failed (e.g. missing name), we keep the retryError to show to the user.
+        if (!retryError) {
+          console.log('Retry successful!')
+          error = null
+        } else {
+          console.error('Retry also failed:', retryError)
+          error = retryError
+        }
+      }
+
       console.log('Step 4: Supabase response received')
       console.log('Response error:', error)
 
       if (error) {
         console.error('Step 5: Error detected!')
         console.error('Full error object:', error)
-        console.error('Error constructor:', error.constructor.name)
-        console.error('Error keys:', Object.keys(error))
-        console.error('Error as JSON:', JSON.stringify(error, null, 2))
         console.error('Error message:', error.message)
-        console.error('Error details:', error.details)
-        console.error('Error hint:', error.hint)
-        console.error('Error code:', error.code)
-        
+
         // Provide user-friendly error messages
         let errorMessage = 'Failed to submit order. '
         if (error.message) {
@@ -123,7 +141,7 @@ export default function OrderForm({ productId, productName, productPrice, onClos
         } else {
           errorMessage += 'Please check your data and try again.'
         }
-        
+
         toast.error(errorMessage)
         return
       }
@@ -134,10 +152,7 @@ export default function OrderForm({ productId, productName, productPrice, onClos
       router.push(`/orders/confirmation?product=${encodeURIComponent(productName)}`)
     } catch (error: any) {
       console.error('=== CAUGHT EXCEPTION ===')
-      console.error('Exception type:', typeof error)
       console.error('Exception:', error)
-      console.error('Exception message:', error?.message)
-      console.error('Exception stack:', error?.stack)
       toast.error(error?.message || 'Failed to submit order. Please try again.')
     } finally {
       console.log('=== ORDER SUBMISSION ENDED ===')

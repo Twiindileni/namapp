@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -23,7 +23,7 @@ interface Category {
   description?: string
 }
 
-export default function BookPhotoshootPage() {
+function BookPhotoshootContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const categoryParam = searchParams.get('category')
@@ -111,7 +111,7 @@ export default function BookPhotoshootPage() {
       if (error) throw error
 
       toast.success('Booking request submitted successfully! We\'ll contact you soon.')
-      
+
       // Reset form
       setFormData({
         customer_name: '',
@@ -285,11 +285,10 @@ export default function BookPhotoshootPage() {
                     <div
                       key={pkg.id}
                       onClick={() => setFormData({ ...formData, package_id: pkg.id })}
-                      className={`relative cursor-pointer border-2 rounded-lg p-4 transition-all ${
-                        formData.package_id === pkg.id
+                      className={`relative cursor-pointer border-2 rounded-lg p-4 transition-all ${formData.package_id === pkg.id
                           ? 'border-indigo-600 bg-indigo-50'
                           : 'border-gray-200 hover:border-indigo-300'
-                      }`}
+                        }`}
                     >
                       {pkg.is_popular && (
                         <span className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full">
@@ -346,7 +345,7 @@ export default function BookPhotoshootPage() {
           {/* Additional Info */}
           <div className="mt-8 text-center text-gray-600">
             <p>
-              <strong>What happens next?</strong> We'll review your request and contact you within 24 hours 
+              <strong>What happens next?</strong> We'll review your request and contact you within 24 hours
               to confirm availability and discuss any details.
             </p>
           </div>
@@ -357,3 +356,16 @@ export default function BookPhotoshootPage() {
     </div>
   )
 }
+
+export default function BookPhotoshootPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    }>
+      <BookPhotoshootContent />
+    </Suspense>
+  )
+}
+

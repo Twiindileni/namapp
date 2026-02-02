@@ -30,6 +30,7 @@ export default function Navbar() {
     { name: 'Home', href: '/', current: true },
     { name: 'Apps', href: '/apps', current: false },
     { name: 'Photography', href: '/categories', current: false },
+    { name: 'Driving School', href: '/driving-school', current: false },
     { name: 'Track Device', href: '/devices', current: false },
     { name: 'Products', href: '/products', current: false },
     { name: 'Signal', href: '/signal', current: false },
@@ -97,6 +98,19 @@ export default function Navbar() {
                               )}
                             >
                               Your Profile
+                            </Link>
+                          )}
+                        </Menu.Item>
+                        <Menu.Item>
+                          {({ active }) => (
+                            <Link
+                              href="/orders"
+                              className={classNames(
+                                active ? 'bg-gray-100' : '',
+                                'block px-4 py-2 text-sm text-gray-700'
+                              )}
+                            >
+                              My Orders
                             </Link>
                           )}
                         </Menu.Item>
@@ -283,7 +297,8 @@ export default function Navbar() {
             )}
           </Disclosure.Panel>
         </>
-      )}
-    </Disclosure>
+      )
+      }
+    </Disclosure >
   )
 } 

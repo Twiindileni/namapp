@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 interface PhotographyCategory {
   id: string
   name: string
+  slug: string
   description: string
   cover_image_url: string | null
   photos?: Photo[]
@@ -19,6 +20,7 @@ interface Photo {
   id: string
   image_url: string
   title: string | null
+  is_featured?: boolean
 }
 
 interface PricingPackage {
@@ -110,7 +112,7 @@ export default function PhotographyPage() {
           .select('*')
           .eq('is_active', true)
           .order('display_order', { ascending: true })
-        
+
         // Load categories with photos
         const { data: categoriesData } = await supabase
           .from('photography_categories')
@@ -129,7 +131,7 @@ export default function PhotographyPage() {
           .order('display_order', { ascending: true })
 
         setHeroSlides(slidesData || [])
-        
+
         // Process categories with featured photos
         const processedCategories = (categoriesData || []).map(cat => {
           const photos = (cat.photography_photos || []) as Photo[]
@@ -139,10 +141,14 @@ export default function PhotographyPage() {
           }
         })
         setCategories(processedCategories)
-        
+
         // Use database packages if available, otherwise use defaults
         if (packagesData && packagesData.length > 0) {
-          setPackages(packagesData)
+          // Deduplicate packages by name
+          const uniquePackages = packagesData.filter((pkg, index, self) =>
+            index === self.findIndex((p) => p.name === pkg.name)
+          )
+          setPackages(uniquePackages)
         } else {
           setPackages(defaultPackages)
         }
@@ -177,7 +183,7 @@ export default function PhotographyPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
-      
+
       {/* Hero Slider Section */}
       <section className="relative h-[60vh] md:h-[70vh] overflow-hidden">
         <div className="absolute inset-0">
@@ -185,9 +191,8 @@ export default function PhotographyPage() {
             heroSlides.map((slide, index) => (
               <div
                 key={slide.id}
-                className={`absolute inset-0 transition-opacity duration-1000 ${
-                  index === currentSlide ? 'opacity-100' : 'opacity-0'
-                }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
+                  }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 z-10" />
                 <img
@@ -201,7 +206,7 @@ export default function PhotographyPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600"></div>
           )}
         </div>
-        
+
         {/* Hero Content */}
         <div className="relative z-20 h-full flex items-center justify-center text-white">
           <div className="text-center px-4">
@@ -255,9 +260,8 @@ export default function PhotographyPage() {
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  index === currentSlide ? 'bg-white w-8' : 'bg-white/50'
-                }`}
+                className={`w-3 h-3 rounded-full transition-all ${index === currentSlide ? 'bg-white w-8' : 'bg-white/50'
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
@@ -304,7 +308,7 @@ export default function PhotographyPage() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    
+
                     {/* Category Info Overlay */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                       <h3 className="text-2xl font-bold mb-2">{category.name}</h3>
@@ -380,18 +384,17 @@ export default function PhotographyPage() {
               packages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className={`relative rounded-2xl p-8 transition-all duration-300 transform hover:-translate-y-2 ${
-                    pkg.is_popular
-                      ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl scale-105'
-                      : 'bg-white shadow-xl'
-                  }`}
+                  className={`relative rounded-2xl p-8 transition-all duration-300 transform hover:-translate-y-2 ${pkg.is_popular
+                    ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl scale-105'
+                    : 'bg-white shadow-xl'
+                    }`}
                 >
                   {pkg.is_popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1 bg-yellow-400 text-gray-900 rounded-full text-sm font-bold">
                       Most Popular
                     </div>
                   )}
-                  
+
                   <div className="text-center mb-8">
                     <h3 className={`text-2xl font-bold mb-2 ${pkg.is_popular ? 'text-white' : 'text-gray-900'}`}>
                       {pkg.name}
@@ -410,9 +413,8 @@ export default function PhotographyPage() {
                     {pkg.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start">
                         <svg
-                          className={`w-6 h-6 mr-3 flex-shrink-0 ${
-                            pkg.is_popular ? 'text-yellow-400' : 'text-indigo-600'
-                          }`}
+                          className={`w-6 h-6 mr-3 flex-shrink-0 ${pkg.is_popular ? 'text-yellow-400' : 'text-indigo-600'
+                            }`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -428,11 +430,10 @@ export default function PhotographyPage() {
 
                   <Link
                     href={`/photography/book?package=${pkg.id}`}
-                    className={`block w-full py-3 px-6 text-center rounded-full font-semibold transition-all transform hover:scale-105 ${
-                      pkg.is_popular
-                        ? 'bg-white text-indigo-600 hover:bg-gray-100'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    }`}
+                    className={`block w-full py-3 px-6 text-center rounded-full font-semibold transition-all transform hover:scale-105 ${pkg.is_popular
+                      ? 'bg-white text-indigo-600 hover:bg-gray-100'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
                   >
                     Book Now
                   </Link>

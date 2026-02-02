@@ -1,27 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/layout/Navbar'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 
-export default function DeveloperLoginPage() {
+function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
+  const searchParams = useSearchParams()
+  const redirectTo = useMemo(() => {
+    const r = searchParams.get('redirect') || '/dashboard'
+    return r.startsWith('/') && !r.startsWith('//') ? r : '/dashboard'
+  }, [searchParams])
   const { login, user } = useAuth()
   const router = useRouter()
 
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
-      router.push('/dashboard')
+      router.push(redirectTo.startsWith('/') ? redirectTo : '/dashboard')
     }
-  }, [user, router])
+  }, [user, router, redirectTo])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -35,6 +40,7 @@ export default function DeveloperLoginPage() {
       setLoading(true)
       await login(formData.email, formData.password)
       toast.success('Login successful!')
+      // useEffect will redirect to redirectTo when user is set
     } catch (error: any) {
       console.error('Login error:', error)
       toast.error(error.message || 'Failed to login')
@@ -57,7 +63,7 @@ export default function DeveloperLoginPage() {
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <div className="glass-effect rounded-lg p-8 hover-lift">
             <h2 className="text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 gradient-text">
-              Developer Login
+              Customer Login
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Welcome back! Please sign in to your account
@@ -145,5 +151,17 @@ export default function DeveloperLoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 } 

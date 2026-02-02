@@ -112,9 +112,12 @@ create policy apps_update_admin on public.apps for update using (
 drop policy if exists apps_delete_own on public.apps;
 create policy apps_delete_own on public.apps for delete using (auth.uid() = developer_id);
 
--- Users policies
+-- Users policies (required so admin checks on orders/apps/etc can read public.users)
+-- Grant base privilege so RLS can run
+grant select on public.users to authenticated;
+grant select on public.users to anon;
 drop policy if exists users_read_all on public.users;
-create policy users_read_all on public.users for select using (true);
+create policy users_read_all on public.users for select to authenticated, anon using (true);
 drop policy if exists users_upsert_self on public.users;
 create policy users_upsert_self on public.users for insert with check (id = auth.uid());
 drop policy if exists users_update_self on public.users;

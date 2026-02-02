@@ -7,6 +7,14 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  const headers: HeadersInit = { 'Content-Type': 'application/json' }
+  if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
+  return headers
+}
+
 interface Stats {
   totalUsers: number
   totalApps: number
@@ -21,6 +29,9 @@ interface Stats {
   averageRating: number
   totalContacts: number
   newContacts: number
+  drivingSchoolPackages: number
+  drivingSchoolBookings: number
+  drivingSchoolPendingBookings: number
 }
 
 export default function AdminDashboardPage() {
@@ -38,83 +49,43 @@ export default function AdminDashboardPage() {
     totalRatings: 0,
     averageRating: 0,
     totalContacts: 0,
-    newContacts: 0
+    newContacts: 0,
+    drivingSchoolPackages: 0,
+    drivingSchoolBookings: 0,
+    drivingSchoolPendingBookings: 0
   })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Users count (robust): request count explicitly; no data needed
-        const { count: usersCount, error: usersError } = await supabase
-          .from('users')
-          .select('id', { count: 'exact', head: true })
-        if (usersError) console.warn('Users count error:', usersError)
+        const headers = await getAuthHeaders()
+        const res = await fetch('/api/admin/stats', { headers })
+        const data = await res.json()
 
-        // Apps list for simple aggregations
-        const { data: appsData, error: appsError } = await supabase
-          .from('apps')
-          .select('status, downloads')
-        if (appsError) console.warn('Apps fetch error:', appsError)
-
-        const totalApps = appsData?.length || 0
-        const pendingApps = (appsData || []).filter((a: any) => a.status === 'pending').length
-        const totalDownloads = (appsData || []).reduce((sum: number, a: any) => sum + (a.downloads || 0), 0)
-
-        // Products list for simple aggregations
-        const { data: productsData, error: productsError } = await supabase
-          .from('products')
-          .select('status')
-        if (productsError) console.warn('Products fetch error:', productsError)
-
-        const totalProducts = productsData?.length || 0
-        const pendingProducts = (productsData || []).filter((p: any) => p.status === 'pending').length
-
-        // Orders data
-        const { data: ordersData, error: ordersError } = await supabase
-          .from('orders')
-          .select('status, total_amount')
-        if (ordersError) console.warn('Orders fetch error:', ordersError)
-
-        const totalOrders = ordersData?.length || 0
-        const pendingOrders = (ordersData || []).filter((o: any) => o.status === 'pending').length
-        const totalOrderValue = (ordersData || []).reduce((sum: number, o: any) => sum + (parseFloat(o.total_amount) || 0), 0)
-
-        // Ratings data
-        const { data: ratingsData, error: ratingsError } = await supabase
-          .from('product_ratings')
-          .select('rating')
-        if (ratingsError) console.warn('Ratings fetch error:', ratingsError)
-
-        const totalRatings = ratingsData?.length || 0
-        const averageRating = totalRatings > 0 
-          ? (ratingsData || []).reduce((sum: number, r: any) => sum + r.rating, 0) / totalRatings 
-          : 0
-
-        // Contact messages counts
-        const { count: contactsCount } = await supabase
-          .from('contact_messages')
-          .select('id', { count: 'exact', head: true })
-
-        const { count: newContactsCount } = await supabase
-          .from('contact_messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'new')
+        if (!res.ok) {
+          toast.error(data?.error ?? 'Failed to load dashboard stats')
+          setLoading(false)
+          return
+        }
 
         setStats({
-          totalUsers: usersCount ?? 0,
-          totalApps,
-          pendingApps,
-          totalDownloads,
-          totalProducts,
-          pendingProducts,
-          totalOrders,
-          pendingOrders,
-          totalOrderValue,
-          totalRatings,
-          averageRating,
-          totalContacts: contactsCount ?? 0,
-          newContacts: newContactsCount ?? 0
+          totalUsers: data.totalUsers ?? 0,
+          totalApps: data.totalApps ?? 0,
+          pendingApps: data.pendingApps ?? 0,
+          totalDownloads: data.totalDownloads ?? 0,
+          totalProducts: data.totalProducts ?? 0,
+          pendingProducts: data.pendingProducts ?? 0,
+          totalOrders: data.totalOrders ?? 0,
+          pendingOrders: data.pendingOrders ?? 0,
+          totalOrderValue: data.totalOrderValue ?? 0,
+          totalRatings: data.totalRatings ?? 0,
+          averageRating: data.averageRating ?? 0,
+          totalContacts: data.totalContacts ?? 0,
+          newContacts: data.newContacts ?? 0,
+          drivingSchoolPackages: data.drivingSchoolPackages ?? 0,
+          drivingSchoolBookings: data.drivingSchoolBookings ?? 0,
+          drivingSchoolPendingBookings: data.drivingSchoolPendingBookings ?? 0
         })
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -222,6 +193,18 @@ export default function AdminDashboardPage() {
               <dt className="truncate text-sm font-medium text-gray-500">New Contacts</dt>
               <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.newContacts}</dd>
             </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Driving School Packages</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.drivingSchoolPackages}</dd>
+            </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Driving School Bookings</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.drivingSchoolBookings}</dd>
+            </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Pending (Driving School)</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.drivingSchoolPendingBookings}</dd>
+            </div>
           </div>
 
           <div className="mt-8">
@@ -295,6 +278,12 @@ export default function AdminDashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-blue-900">Device Tracking</span>
+              </Link>
+              <Link href="/admin/driving-school" className="relative block w-full rounded-lg border-2 border-dashed border-emerald-300 p-12 text-center hover:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 bg-emerald-50 hover:bg-emerald-100 transition-all">
+                <svg className="mx-auto h-12 w-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">Driving School</span>
               </Link>
             </div>
           </div>

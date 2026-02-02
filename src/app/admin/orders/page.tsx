@@ -6,6 +6,14 @@ import Navbar from '@/components/layout/Navbar'
 import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
 
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  const headers: HeadersInit = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return headers
+}
+
 interface Order {
   id: string
   name: string
@@ -28,6 +36,8 @@ export default function AdminOrdersPage() {
   const { userRole, loading: authLoading } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [refetchTrigger, setRefetchTrigger] = useState(0)
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'>('all')
   const [smsOpen, setSmsOpen] = useState(false)
   const [smsTo, setSmsTo] = useState('')
@@ -37,21 +47,26 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false })
+        const headers = await getAuthHeaders()
+        const res = await fetch('/api/admin/orders', { headers })
+        const data = await res.json()
 
-        if (error) {
-          console.error('Error fetching orders:', error)
-          toast.error('Failed to load orders')
+        if (!res.ok) {
+          const msg = data?.error ?? res.statusText ?? 'Failed to load orders'
+          setFetchError(msg)
+          toast.error(msg)
+          setOrders([])
           return
         }
 
-        setOrders(data || [])
-      } catch (error) {
-        console.error('Error fetching orders:', error)
-        toast.error('Failed to load orders')
+        setFetchError(null)
+        setOrders(Array.isArray(data) ? data : [])
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to load orders'
+        console.error('Exception fetching orders:', message, err)
+        setFetchError(message)
+        toast.error(message)
+        setOrders([])
       } finally {
         setLoading(false)
       }
@@ -65,31 +80,30 @@ export default function AdminOrdersPage() {
     }
 
     fetchOrders()
-  }, [userRole, authLoading])
+  }, [userRole, authLoading, refetchTrigger])
 
   const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId)
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ id: orderId, status: newStatus }),
+      })
+      const data = await res.json()
 
-      if (error) {
-        console.error('Error updating order:', error)
-        toast.error('Failed to update order status')
+      if (!res.ok) {
+        toast.error(data?.error ?? 'Failed to update order status')
         return
       }
 
-      // Update local state
-      setOrders(prev => prev.map(order => 
-        order.id === orderId 
-          ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
-          : order
-      ))
-
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId
+            ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
+            : order
+        )
+      )
       toast.success(`Order status updated to ${newStatus}`)
     } catch (error) {
       console.error('Error updating order:', error)
@@ -97,8 +111,8 @@ export default function AdminOrdersPage() {
     }
   }
 
-  const filteredOrders = filter === 'all' 
-    ? orders 
+  const filteredOrders = filter === 'all'
+    ? orders
     : orders.filter(order => order.status === filter)
 
   const getStatusColor = (status: Order['status']) => {
@@ -182,11 +196,10 @@ export default function AdminOrdersPage() {
                   <button
                     key={tab.key}
                     onClick={() => setFilter(tab.key as any)}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      filter === tab.key
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${filter === tab.key
                         ? 'border-indigo-500 text-indigo-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     {tab.label} ({tab.count})
                   </button>
@@ -197,7 +210,22 @@ export default function AdminOrdersPage() {
 
           {/* Orders Table */}
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            {filteredOrders.length === 0 ? (
+            {fetchError ? (
+              <div className="text-center py-12 px-4">
+                <p className="text-red-600 font-medium mb-2">Could not load orders</p>
+                <p className="text-gray-600 text-sm mb-4">{fetchError}</p>
+                <p className="text-gray-500 text-xs max-w-md mx-auto">
+                  Make sure the &quot;orders&quot; table exists in Supabase and that your admin user has SELECT permission (RLS policy for admin role).
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setFetchError(null); setLoading(true); setRefetchTrigger((c) => c + 1) }}
+                  className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : filteredOrders.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-500">No orders found.</p>
               </div>
@@ -225,7 +253,7 @@ export default function AdminOrdersPage() {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                           <div>
                             <p><strong>Customer:</strong> {order.name}</p>
@@ -244,7 +272,7 @@ export default function AdminOrdersPage() {
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="mt-2 text-xs text-gray-400">
                           <p>Ordered: {new Date(order.created_at).toLocaleString()}</p>
                           {order.updated_at !== order.created_at && (
@@ -252,7 +280,7 @@ export default function AdminOrdersPage() {
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Status Update Buttons */}
                       <div className="ml-4 flex flex-col space-y-2">
                         {order.status === 'pending' && (

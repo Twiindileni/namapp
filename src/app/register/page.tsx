@@ -81,7 +81,7 @@ export default function RegisterPage() {
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <div className="glass-effect rounded-lg p-8 hover-lift">
             <h2 className="text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 gradient-text">
-              Register as a Developer
+              Register as a Customer
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Join our community of developers and showcase your apps
