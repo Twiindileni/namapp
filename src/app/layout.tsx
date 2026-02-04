@@ -7,6 +7,10 @@ import AnimatedBackground from "@/components/layout/AnimatedBackground";
 export const metadata: Metadata = {
   title: "Purpose Technology",
   description: "Discover and download great mobile applications",
+  icons: {
+    icon: "/purpose_logo.png",
+    apple: "/purpose_logo.png",
+  },
 };
 
 export default function RootLayout({

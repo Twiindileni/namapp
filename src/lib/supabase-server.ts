@@ -10,20 +10,19 @@ let serverClient: SupabaseClient | null = null
 export function getSupabaseServerClient(): SupabaseClient {
   if (serverClient) return serverClient
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL)?.trim()
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
   if (!url) {
     throw new Error(
-      'Server Supabase client: set NEXT_PUBLIC_SUPABASE_URL in .env.local'
+      'Server Supabase client: set NEXT_PUBLIC_SUPABASE_URL in .env.local (or in Vercel → Project Settings → Environment Variables).'
     )
   }
   if (!serviceRoleKey) {
-    throw new Error(
-      'Server Supabase client: add SUPABASE_SERVICE_ROLE_KEY to .env.local. ' +
-      'Get it in Supabase Dashboard → Project Settings → API → service_role (secret). ' +
-      'Never expose this key in the browser.'
-    )
+    const hint = process.env.VERCEL
+      ? 'On Vercel: add SUPABASE_SERVICE_ROLE_KEY in Project Settings → Environment Variables, then redeploy.'
+      : 'Locally: add SUPABASE_SERVICE_ROLE_KEY to .env.local (get it in Supabase Dashboard → Project Settings → API → service_role secret). Never expose this key in the browser.'
+    throw new Error(`Server Supabase client: SUPABASE_SERVICE_ROLE_KEY is missing. ${hint}`)
   }
 
   serverClient = createClient(url, serviceRoleKey, {

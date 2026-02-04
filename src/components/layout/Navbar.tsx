@@ -4,6 +4,7 @@ import { Fragment } from 'react'
 import { Disclosure, Menu, Transition } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -46,8 +47,9 @@ export default function Navbar() {
             <div className="flex h-16 justify-between">
               <div className="flex">
                 <div className="flex flex-shrink-0 items-center">
-                  <Link href="/" className="text-2xl font-bold text-indigo-600">
-                    Purpose Technology
+                  <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-indigo-600">
+                    <Image src="/purpose_logo.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" />
+                    <span>Purpose Technology</span>
                   </Link>
                 </div>
                 <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
