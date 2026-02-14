@@ -129,21 +129,19 @@ export default function Navbar() {
                             </Link>
                           )}
                         </Menu.Item>
-                        {userRole === 'developer' && (
-                          <Menu.Item>
-                            {({ active }) => (
-                              <Link
-                                href="/dashboard"
-                                className={classNames(
-                                  active ? 'bg-gray-100' : '',
-                                  'block px-4 py-2 text-sm text-gray-700'
-                                )}
-                              >
-                                Dashboard
-                              </Link>
-                            )}
-                          </Menu.Item>
-                        )}
+                        <Menu.Item>
+                          {({ active }) => (
+                            <Link
+                              href="/dashboard"
+                              className={classNames(
+                                active ? 'bg-gray-100' : '',
+                                'block px-4 py-2 text-sm text-gray-700'
+                              )}
+                            >
+                              Driving Portal
+                            </Link>
+                          )}
+                        </Menu.Item>
                         {userRole === 'admin' && (
                           <Menu.Item>
                             {({ active }) => (
@@ -250,15 +248,13 @@ export default function Navbar() {
                   >
                     My Devices
                   </Disclosure.Button>
-                  {userRole === 'developer' && (
-                    <Disclosure.Button
-                      as={Link}
-                      href="/dashboard"
-                      className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                    >
-                      Dashboard
-                    </Disclosure.Button>
-                  )}
+                  <Disclosure.Button
+                    as={Link}
+                    href="/dashboard"
+                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                  >
+                    Driving Portal
+                  </Disclosure.Button>
                   {userRole === 'admin' && (
                     <Disclosure.Button
                       as={Link}

@@ -5,6 +5,7 @@ import Navbar from '@/components/layout/Navbar'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import Image from 'next/image'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Package {
   id: string
@@ -19,6 +20,7 @@ interface Package {
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1600&q=80'
 
 export default function DrivingSchoolPage() {
+  const { user } = useAuth()
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
   const [formLoading, setFormLoading] = useState(false)
@@ -32,6 +34,16 @@ export default function DrivingSchoolPage() {
     preferred_dates: '',
     message: '',
   })
+
+  useEffect(() => {
+    if (user) {
+      setForm((f) => ({
+        ...f,
+        customer_name: user.user_metadata?.name ?? f.customer_name,
+        customer_email: user.email ?? f.customer_email,
+      }))
+    }
+  }, [user])
 
   useEffect(() => {
     const load = async () => {
@@ -68,6 +80,7 @@ export default function DrivingSchoolPage() {
       preferred_time: form.preferred_time || null,
       preferred_dates: form.preferred_dates || null,
       message: form.message || null,
+      user_id: user?.id ?? null,
     })
     setFormLoading(false)
     if (error) {
