@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
+const HOURS_RATE_NAD = 130
+
 const DRIVING_STAGES = [
   { key: 'stage_clutch', label: '1. Clutch balancing', doneKey: 'stage_clutch_done', pctKey: 'stage_clutch_pct' },
   { key: 'stage_gears', label: '2. Gears change', doneKey: 'stage_gears_done', pctKey: 'stage_gears_pct' },
@@ -15,6 +17,27 @@ const DRIVING_STAGES = [
   { key: 'stage_reverse_parking', label: '5. Reverse parking', doneKey: 'stage_reverse_parking_done', pctKey: 'stage_reverse_parking_pct' },
   { key: 'stage_ready_natis', label: '6. Ready for NATIS test drive', doneKey: 'stage_ready_natis_done', pctKey: 'stage_ready_natis_pct' },
 ] as const
+
+interface PaymentRow {
+  id: string
+  booking_id: string
+  amount_nad: number
+  created_at: string
+}
+
+interface SessionRow {
+  id: string
+  booking_id: string
+  hours: number
+  session_date: string | null
+  created_at: string
+}
+
+interface ActiveSessionRow {
+  id: string
+  booking_id: string
+  started_at: string
+}
 
 interface Booking {
   id: string
@@ -56,6 +79,15 @@ export default function AdminDrivingSchoolBookingsPage() {
   const [progressStages, setProgressStages] = useState<Record<string, boolean>>({})
   const [progressPct, setProgressPct] = useState<Record<string, number>>({})
   const [savingProgress, setSavingProgress] = useState(false)
+  const [paymentsByBooking, setPaymentsByBooking] = useState<Record<string, PaymentRow[]>>({})
+  const [sessionsByBooking, setSessionsByBooking] = useState<Record<string, SessionRow[]>>({})
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [sessionHours, setSessionHours] = useState('')
+  const [sessionDate, setSessionDate] = useState('')
+  const [savingPayment, setSavingPayment] = useState(false)
+  const [savingSession, setSavingSession] = useState(false)
+  const [activeByBooking, setActiveByBooking] = useState<Record<string, ActiveSessionRow>>({})
+  const [now, setNow] = useState(() => Date.now())
 
   const load = async () => {
     const { data, error } = await supabase
@@ -68,7 +100,42 @@ export default function AdminDrivingSchoolBookingsPage() {
       setLoading(false)
       return
     }
-    setBookings((data ?? []) as Booking[])
+    const list = (data ?? []) as Booking[]
+    setBookings(list)
+    const ids = list.map((b) => b.id)
+    if (ids.length > 0) {
+      const { data: paymentsData } = await supabase
+        .from('driving_school_payments')
+        .select('id, booking_id, amount_nad, created_at')
+        .in('booking_id', ids)
+        .order('created_at', { ascending: false })
+      const payments: Record<string, PaymentRow[]> = {}
+      for (const p of (paymentsData ?? []) as PaymentRow[]) {
+        if (!payments[p.booking_id]) payments[p.booking_id] = []
+        payments[p.booking_id].push(p)
+      }
+      setPaymentsByBooking(payments)
+      const { data: sessionsData } = await supabase
+        .from('driving_school_sessions')
+        .select('id, booking_id, hours, session_date, created_at')
+        .in('booking_id', ids)
+        .order('session_date', { ascending: false })
+      const sessions: Record<string, SessionRow[]> = {}
+      for (const s of (sessionsData ?? []) as SessionRow[]) {
+        if (!sessions[s.booking_id]) sessions[s.booking_id] = []
+        sessions[s.booking_id].push(s)
+      }
+      setSessionsByBooking(sessions)
+      const { data: activeData } = await supabase
+        .from('driving_school_active_sessions')
+        .select('id, booking_id, started_at')
+        .in('booking_id', ids)
+      const active: Record<string, ActiveSessionRow> = {}
+      for (const a of (activeData ?? []) as ActiveSessionRow[]) {
+        active[a.booking_id] = a
+      }
+      setActiveByBooking(active)
+    }
     setLoading(false)
   }
 
@@ -81,6 +148,13 @@ export default function AdminDrivingSchoolBookingsPage() {
     }
     load()
   }, [userRole, authLoading])
+
+  // Tick every second when there's an active session so elapsed time updates
+  useEffect(() => {
+    if (Object.keys(activeByBooking).length === 0) return
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [activeByBooking])
 
   const updateStatus = async (id: string, status: Booking['status']) => {
     const { error } = await supabase
@@ -137,6 +211,95 @@ export default function AdminDrivingSchoolBookingsPage() {
     const prev = DRIVING_STAGES[index - 1]
     const prevPct = progressPct[prev.pctKey] ?? 0
     return prevPct >= 100
+  }
+
+  const getPaymentSummary = (bookingId: string) => {
+    const payments = paymentsByBooking[bookingId] ?? []
+    const sessions = sessionsByBooking[bookingId] ?? []
+    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount_nad), 0)
+    const hoursPurchased = totalPaid / HOURS_RATE_NAD
+    const hoursPracticed = sessions.reduce((sum, s) => sum + Number(s.hours), 0)
+    const hoursRemaining = Math.max(0, hoursPurchased - hoursPracticed)
+    const completionPct = hoursPurchased > 0 ? Math.round((hoursPracticed / hoursPurchased) * 100) : 0
+    return { totalPaid, hoursPurchased, hoursPracticed, hoursRemaining, completionPct, payments, sessions }
+  }
+
+  const recordPayment = async (bookingId: string) => {
+    const amount = parseFloat(paymentAmount.replace(/,/g, '.'))
+    if (!amount || amount <= 0) {
+      toast.error('Enter a valid amount')
+      return
+    }
+    setSavingPayment(true)
+    const { error } = await supabase
+      .from('driving_school_payments')
+      .insert({ booking_id: bookingId, amount_nad: amount })
+    setSavingPayment(false)
+    if (error) {
+      toast.error('Failed to record payment')
+      return
+    }
+    toast.success(`Payment N$${amount.toFixed(2)} recorded`)
+    setPaymentAmount('')
+    await load()
+  }
+
+  const startSessionTimer = async (bookingId: string) => {
+    const { error } = await supabase
+      .from('driving_school_active_sessions')
+      .insert({ booking_id: bookingId })
+    if (error) {
+      toast.error('Failed to start timer')
+      return
+    }
+    toast.success('Session timer started')
+    await load()
+  }
+
+  const finishSessionTimer = async (bookingId: string) => {
+    const active = activeByBooking[bookingId]
+    if (!active) return
+    const started = new Date(active.started_at).getTime()
+    const durationMs = now - started
+    const hours = durationMs / (1000 * 60 * 60)
+    if (hours <= 0) {
+      toast.error('Session too short to record')
+      await supabase.from('driving_school_active_sessions').delete().eq('booking_id', bookingId)
+      await load()
+      return
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    const { error: insertErr } = await supabase
+      .from('driving_school_sessions')
+      .insert({ booking_id: bookingId, hours, session_date: today })
+    if (insertErr) {
+      toast.error('Failed to save session')
+      return
+    }
+    await supabase.from('driving_school_active_sessions').delete().eq('booking_id', bookingId)
+    toast.success(`Session finished: ${hours.toFixed(2)} hours recorded`)
+    await load()
+  }
+
+  const recordSession = async (bookingId: string) => {
+    const hours = parseFloat(sessionHours.replace(/,/g, '.'))
+    if (!hours || hours <= 0) {
+      toast.error('Enter valid hours')
+      return
+    }
+    setSavingSession(true)
+    const payload: { booking_id: string; hours: number; session_date?: string } = { booking_id: bookingId, hours }
+    if (sessionDate) payload.session_date = sessionDate
+    const { error } = await supabase.from('driving_school_sessions').insert(payload)
+    setSavingSession(false)
+    if (error) {
+      toast.error('Failed to record session')
+      return
+    }
+    toast.success(`${hours} hour(s) practiced recorded`)
+    setSessionHours('')
+    setSessionDate('')
+    await load()
   }
 
   const saveProgress = async (id: string) => {
@@ -266,6 +429,15 @@ export default function AdminDrivingSchoolBookingsPage() {
                           <span className="text-xs text-gray-400">({b.clutch_switch_off_count} switch-offs)</span>
                         )}
                       </div>
+                      {(() => {
+                        const s = getPaymentSummary(b.id)
+                        if (s.totalPaid === 0 && s.hoursPracticed === 0) return null
+                        return (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Paid: N$ {s.totalPaid.toFixed(2)} · {s.hoursPurchased.toFixed(1)}h purchased · {s.hoursPracticed.toFixed(1)}h practiced · {s.completionPct}%
+                          </p>
+                        )
+                      })()}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex px-2.5 py-0.5 rounded text-xs font-medium ${getStatusColor(b.status)}`}>
@@ -285,6 +457,125 @@ export default function AdminDrivingSchoolBookingsPage() {
                   </div>
                   {selected?.id === b.id ? (
                     <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                      {/* Payments & hours (N$130/hour) */}
+                      {(() => {
+                        const summary = getPaymentSummary(b.id)
+                        const active = activeByBooking[b.id]
+                        return (
+                          <div className="rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3">Payments & hours (N$130/hour)</h3>
+                            {active ? (
+                              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3">
+                                <span className="text-green-800 font-medium">Session in progress</span>
+                                <span className="text-xl font-bold text-green-900 tabular-nums">
+                                  {(() => {
+                                    const started = new Date(active.started_at).getTime()
+                                    const elapsedMs = now - started
+                                    const h = Math.floor(elapsedMs / 3600000)
+                                    const m = Math.floor((elapsedMs % 3600000) / 60000)
+                                    const s = Math.floor((elapsedMs % 60000) / 1000)
+                                    return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`
+                                  })()}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => finishSessionTimer(b.id)}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                                >
+                                  Finish
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="mb-4">
+                                <button
+                                  type="button"
+                                  onClick={() => startSessionTimer(b.id)}
+                                  className="px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700"
+                                >
+                                  Start session timer
+                                </button>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+                              <div className="bg-white rounded border border-gray-200 p-2">
+                                <p className="text-xs text-gray-600">Hours paid</p>
+                                <p className="font-semibold text-gray-900">N$ {summary.totalPaid.toFixed(2)}</p>
+                              </div>
+                              <div className="bg-white rounded border border-gray-200 p-2">
+                                <p className="text-xs text-gray-600">Hours purchased</p>
+                                <p className="font-semibold text-gray-900">{summary.hoursPurchased.toFixed(1)}</p>
+                              </div>
+                              <div className="bg-white rounded border border-gray-200 p-2">
+                                <p className="text-xs text-gray-600">Hours practiced</p>
+                                <p className="font-semibold text-gray-900">{summary.hoursPracticed.toFixed(1)}</p>
+                              </div>
+                              <div className="bg-white rounded border border-gray-200 p-2">
+                                <p className="text-xs text-gray-600">Remaining</p>
+                                <p className="font-semibold text-gray-900">{summary.hoursRemaining.toFixed(1)}</p>
+                              </div>
+                              <div className="bg-white rounded border border-gray-200 p-2">
+                                <p className="text-xs text-gray-600">Completion</p>
+                                <p className="font-semibold text-indigo-600">{summary.completionPct}%</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-end gap-3">
+                              <div>
+                                <label className="block text-xs text-gray-600">Payment amount (N$)</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="e.g. 1040"
+                                  value={paymentAmount}
+                                  onChange={(e) => setPaymentAmount(e.target.value)}
+                                  className="mt-0.5 w-28 rounded border-gray-300 text-sm"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                disabled={savingPayment}
+                                onClick={() => recordPayment(b.id)}
+                                className="px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700 disabled:opacity-50"
+                              >
+                                {savingPayment ? 'Saving…' : 'Record payment'}
+                              </button>
+                              <div className="w-px h-8 bg-gray-200" />
+                              <div>
+                                <label className="block text-xs text-gray-600">Hours practiced</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="e.g. 2"
+                                  value={sessionHours}
+                                  onChange={(e) => setSessionHours(e.target.value)}
+                                  className="mt-0.5 w-20 rounded border-gray-300 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600">Date (optional)</label>
+                                <input
+                                  type="date"
+                                  value={sessionDate}
+                                  onChange={(e) => setSessionDate(e.target.value)}
+                                  className="mt-0.5 rounded border-gray-300 text-sm"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                disabled={savingSession}
+                                onClick={() => recordSession(b.id)}
+                                className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
+                              >
+                                {savingSession ? 'Saving…' : 'Record practice'}
+                              </button>
+                            </div>
+                            {(summary.payments.length > 0 || summary.sessions.length > 0) && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                {summary.payments.length} payment(s), {summary.sessions.length} session(s)
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })()}
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Learner progress</label>
                         <p className="text-xs text-gray-500 mt-0.5">Set percentage (0–100) per stage. e.g. 30% if they struggled today; 100% when ready to move on. Next stage unlocks when previous is 100%.</p>

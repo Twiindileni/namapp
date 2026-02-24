@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from '@/components/layout/Navbar'
 import Link from 'next/link'
-import toast from 'react-hot-toast'
 import { supabase } from '@/lib/supabase'
+
+const HOURS_RATE_NAD = 130
 
 const DRIVING_STAGE_LABELS = [
   'Clutch balancing',
@@ -15,6 +16,21 @@ const DRIVING_STAGE_LABELS = [
   'Reverse parking',
   'Ready for NATIS test drive',
 ]
+
+interface PaymentRow {
+  id: string
+  booking_id: string
+  amount_nad: number
+  created_at: string
+}
+
+interface SessionRow {
+  id: string
+  booking_id: string
+  hours: number
+  session_date: string | null
+  created_at: string
+}
 
 interface DrivingBooking {
   id: string
@@ -41,6 +57,8 @@ interface DrivingBooking {
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
   const [drivingBookings, setDrivingBookings] = useState<DrivingBooking[]>([])
+  const [paymentsByBooking, setPaymentsByBooking] = useState<Record<string, PaymentRow[]>>({})
+  const [sessionsByBooking, setSessionsByBooking] = useState<Record<string, SessionRow[]>>({})
   const [drivingLoading, setDrivingLoading] = useState(true)
 
   useEffect(() => {
@@ -49,23 +67,52 @@ export default function DashboardPage() {
       return
     }
 
-    const fetchDrivingBookings = async () => {
+    const fetchAll = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: bookingsData, error: bookingsError } = await supabase
           .from('driving_school_bookings')
           .select('id, status, preferred_date, preferred_time, created_at, clutch_switch_off_count, stage_clutch_done, stage_gears_done, stage_road_driving_done, stage_parallel_parking_done, stage_reverse_parking_done, stage_ready_natis_done, stage_clutch_pct, stage_gears_pct, stage_road_driving_pct, stage_parallel_parking_pct, stage_reverse_parking_pct, stage_ready_natis_pct, driving_school_packages(name, price_nad)')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-        if (error) throw error
-        setDrivingBookings((data || []) as DrivingBooking[])
+        if (bookingsError) throw bookingsError
+        const bookings = (bookingsData || []) as DrivingBooking[]
+        setDrivingBookings(bookings)
+
+        const ids = bookings.map((b) => b.id)
+        const payments: Record<string, PaymentRow[]> = {}
+        const sessions: Record<string, SessionRow[]> = {}
+
+        if (ids.length > 0) {
+          const { data: paymentsData } = await supabase
+            .from('driving_school_payments')
+            .select('id, booking_id, amount_nad, created_at')
+            .in('booking_id', ids)
+            .order('created_at', { ascending: false })
+          for (const p of (paymentsData || []) as PaymentRow[]) {
+            if (!payments[p.booking_id]) payments[p.booking_id] = []
+            payments[p.booking_id].push(p)
+          }
+
+          const { data: sessionsData } = await supabase
+            .from('driving_school_sessions')
+            .select('id, booking_id, hours, session_date, created_at')
+            .in('booking_id', ids)
+            .order('session_date', { ascending: false })
+          for (const s of (sessionsData || []) as SessionRow[]) {
+            if (!sessions[s.booking_id]) sessions[s.booking_id] = []
+            sessions[s.booking_id].push(s)
+          }
+        }
+        setPaymentsByBooking(payments)
+        setSessionsByBooking(sessions)
       } catch (error) {
-        console.error('Error fetching driving bookings:', error)
+        console.error('Error fetching driving data:', error)
       } finally {
         setDrivingLoading(false)
       }
     }
 
-    fetchDrivingBookings()
+    fetchAll()
   }, [user, authLoading])
 
   const getDrivingStages = (b: DrivingBooking) => [
@@ -78,6 +125,32 @@ export default function DashboardPage() {
     ]
 
   const starsForPct = (pct: number) => Math.min(5, Math.floor((pct / 100) * 5))
+
+  function getPaymentSummary(bookingId: string) {
+    const payments = paymentsByBooking[bookingId] || []
+    const sessions = sessionsByBooking[bookingId] || []
+    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount_nad), 0)
+    const hoursPurchased = totalPaid / HOURS_RATE_NAD
+    const hoursPracticed = sessions.reduce((sum, s) => sum + Number(s.hours), 0)
+    const hoursRemaining = Math.max(0, hoursPurchased - hoursPracticed)
+    const valuePracticed = hoursPracticed * HOURS_RATE_NAD
+    const valueRemaining = hoursRemaining * HOURS_RATE_NAD
+    const completionPct = hoursPurchased > 0 ? Math.round((hoursPracticed / hoursPurchased) * 100) : 0
+    return {
+      totalPaid,
+      hoursPurchased,
+      hoursPracticed,
+      hoursRemaining,
+      valuePracticed,
+      valueRemaining,
+      completionPct,
+      sessions: sessions.sort((a, b) => {
+        const d1 = a.session_date || a.created_at
+        const d2 = b.session_date || b.created_at
+        return d2.localeCompare(d1)
+      }),
+    }
+  }
 
   if (authLoading) {
     return (
@@ -130,7 +203,9 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="mt-4 space-y-4">
-                {drivingBookings.map((b) => (
+                {drivingBookings.map((b) => {
+                  const summary = getPaymentSummary(b.id)
+                  return (
                   <div key={b.id} className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
@@ -151,6 +226,56 @@ export default function DashboardPage() {
                         {b.status}
                       </span>
                     </div>
+
+                    {/* Financial & hours overview (like sketch) */}
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3">
+                        <p className="text-xs font-medium text-gray-600">Hours paid</p>
+                        <p className="text-lg font-semibold text-gray-900">N$ {summary.totalPaid.toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3">
+                        <p className="text-xs font-medium text-gray-600">Hours practiced (value)</p>
+                        <p className="text-lg font-semibold text-gray-900">N$ {summary.valuePracticed.toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3">
+                        <p className="text-xs font-medium text-gray-600">Total remain</p>
+                        <p className="text-lg font-semibold text-gray-900">N$ {summary.valueRemaining.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-gray-200 bg-white p-3">
+                        <p className="text-xs font-medium text-gray-600">Total hours (practiced)</p>
+                        <p className="text-xl font-bold text-indigo-600">{summary.hoursPracticed.toFixed(1)}</p>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-white p-3">
+                        <p className="text-xs font-medium text-gray-600">Total percentage</p>
+                        <p className="text-xl font-bold text-indigo-600">{summary.completionPct}%</p>
+                      </div>
+                    </div>
+
+                    {/* Sessions timeline */}
+                    {summary.sessions.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Driving sessions</p>
+                        <div className="flex flex-wrap items-center gap-6">
+                          {summary.sessions.map((s, i) => {
+                            const d = s.session_date || s.created_at.split('T')[0]
+                            const dateObj = new Date(d + (d.length === 10 ? 'T12:00:00' : ''))
+                            const dayLabel = dateObj.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+                            return (
+                              <div key={s.id} className="flex items-center gap-2">
+                                {i > 0 && <span className="text-gray-300">·</span>}
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-gray-900">{Number(s.hours)} hour{Number(s.hours) !== 1 ? 's' : ''}</span>
+                                  <span className="text-xs text-gray-500">{dayLabel}</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="mt-4">
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Progress</p>
                       <ul className="space-y-2">
@@ -187,7 +312,8 @@ export default function DashboardPage() {
                       View driving school →
                     </Link>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
