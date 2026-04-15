@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/layout/AnimatedBackground";
+import BootRecovery from "@/components/system/BootRecovery";
 
 export const metadata: Metadata = {
   title: "Purpose Technology",
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
+        <BootRecovery />
         <AuthProvider>
           <Toaster position="top-center" />
           {children}
