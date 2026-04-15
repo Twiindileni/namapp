@@ -285,6 +285,13 @@ export default function AdminDashboardPage() {
                 </svg>
                 <span className="mt-2 block text-sm font-semibold text-gray-900">Driving School</span>
               </Link>
+
+              <Link href="/admin/emails" className="relative block w-full rounded-lg border-2 border-dashed border-sky-300 p-12 text-center hover:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 bg-sky-50 hover:bg-sky-100 transition-all">
+                <svg className="mx-auto h-12 w-12 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8h18a2 2 0 002-2V8a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                </svg>
+                <span className="mt-2 block text-sm font-semibold text-sky-900">Email Studio</span>
+              </Link>
             </div>
           </div>
         </div>

@@ -1,228 +1,237 @@
 "use client"
 
-import Navbar from '@/components/layout/Navbar'
 import { useState } from 'react'
+import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
+import PageLoader from '@/components/ui/PageLoader'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { 
+  BanknotesIcon, 
+  DocumentTextIcon, 
+  ShieldCheckIcon, 
+  ClockIcon,
+  ChevronRightIcon,
+  ArrowRightIcon
+} from '@heroicons/react/24/outline'
 
 export default function BorrowPage() {
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
-  const [amount, setAmount] = useState<number | ''>('')
-  const [collateralType, setCollateralType] = useState<'fridge' | 'phone' | 'laptop' | ''>('')
-  const [collateralDescription, setCollateralDescription] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  const calculateRepayment = (amt: number) => {
-    if (!amt) return 0
-    // Flat 30% fee per the brief: N$100 -> N$130
-    return Number((amt * 1.3).toFixed(2))
-  }
+  const [amount, setAmount] = useState('')
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name || !phone || !amount || !collateralType) {
-      toast.error('Please fill in name, phone, amount and collateral type.')
+    if (!name || !email || !amount || !reason) {
+      toast.error('Please fill in all required fields.')
       return
     }
-    if (typeof amount !== 'number' || amount <= 0) {
-      toast.error('Please enter a valid amount.')
+    setLoading(true)
+    const { error } = await supabase.from('loans').insert({
+      name,
+      email,
+      amount: parseFloat(amount),
+      reason,
+    })
+    setLoading(false)
+    if (error) {
+      toast.error('Application failed. Please try again.')
       return
     }
-    if (amount >= 500 && !collateralType) {
-      toast.error('Collateral is required for amounts from N$500.00')
-      return
-    }
-    try {
-      setSubmitting(true)
-      const repayment = calculateRepayment(amount)
-      const { error } = await supabase
-        .from('loans')
-        .insert({
-          applicant_name: name,
-          phone,
-          email: email || null,
-          amount,
-          repayment_amount: repayment,
-          collateral_type: collateralType || null,
-          collateral_description: collateralDescription || null,
-          status: 'pending'
-        })
+    toast.success('Loan application submitted for review.')
+    setName('')
+    setEmail('')
+    setAmount('')
+    setReason('')
+  }
 
-      if (error) throw error
-
-      // Collateral info is already stored on the loan row; no separate insert needed
-
-      toast.success('Loan request submitted. We will contact you shortly.')
-      setName('')
-      setPhone('')
-      setEmail('')
-      setAmount('')
-      setCollateralType('')
-      setCollateralDescription('')
-    } catch (err: any) {
-      const message = err?.message || err?.error_description || (typeof err === 'object' ? JSON.stringify(err) : String(err))
-      console.error('Loan submit error:', message)
-      toast.error(`Failed to submit loan request: ${message}`)
-    } finally {
-      setSubmitting(false)
-    }
+  if (loading) {
+    return (
+      <PageLoader 
+        icon={<BanknotesIcon className="w-8 h-8" />}
+        message="Validating Request..."
+      />
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#020b1a] flex flex-col">
       <Navbar />
-      {/* Hero with blue gradient and form card on the right */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-400">
-        <div className="pointer-events-none absolute -top-16 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -right-16 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-stretch">
-            <div className="text-white">
-              <h1 className="text-3xl sm:text-4xl font-bold">Borrow with Confidence</h1>
-              <p className="mt-3 max-w-2xl text-white/90">
-                Fast, transparent micro-loans. Borrow N$100.00 and pay back N$130.00. For loans from N$500.00, a collateral is required.
+      
+      <main className="flex-grow pt-32 pb-24 px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          
+          {/* Hero Section */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12 mb-20 fade-in-up">
+            <div className="max-w-2xl text-left">
+              <span className="text-xs font-bold uppercase tracking-[0.4em] text-[#5a9ef5] mb-6 block">Financial Services</span>
+              <h1 className="hero-title !text-5xl md:!text-7xl">Micro <span className="gradient-text">Loans</span></h1>
+              <p className="mt-8 text-[#8baed4] text-xl leading-relaxed">
+                Empowering your digital journey with accessible financing. Apply for a micro loan today and get a response within 24 hours.
               </p>
-              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-lg bg-white/10 p-4 ring-1 ring-white/20">
-                  <h3 className="font-semibold">Simple Pricing</h3>
-                  <p className="mt-1 text-sm text-white/80">Flat 30% fee. Example: N$100 → N$130.</p>
-                </div>
-                <div className="rounded-lg bg-white/10 p-4 ring-1 ring-white/20">
-                  <h3 className="font-semibold">Quick Decisions</h3>
-                  <p className="mt-1 text-sm text-white/80">Apply in minutes, get a response quickly.</p>
-                </div>
-                <div className="rounded-lg bg-white/10 p-4 ring-1 ring-white/20">
-                  <h3 className="font-semibold">Secure Collateral</h3>
-                  <p className="mt-1 text-sm text-white/80">From N$500, provide a fridge, phone, or laptop.</p>
-                </div>
+            </div>
+            
+            <div className="glass-card flex items-center gap-6 !p-6 border-[rgba(0,85,204,0.1)]">
+               <div className="w-12 h-12 rounded-xl bg-[rgba(0,53,128,0.1)] flex items-center justify-center">
+                  <ShieldCheckIcon className="w-6 h-6 text-[#5a9ef5]" />
+               </div>
+               <div>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-[#4a6a90]">Security Tier</p>
+                  <p className="text-sm font-bold text-white">Advanced Verified</p>
+               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 items-start">
+            
+            {/* Requirements Sidebar */}
+            <div className="space-y-8 fade-in-up md:sticky md:top-32">
+              <div className="glass-card !p-8 border-[rgba(26,114,240,0.15)] bg-gradient-to-br from-[rgba(2,11,26,0.5)] to-transparent">
+                 <h3 className="text-xs font-bold text-[#5a9ef5] uppercase tracking-widest mb-8 border-b border-[rgba(0,85,204,0.1)] pb-4">Protocol</h3>
+                 
+                 <div className="space-y-10">
+                    <div className="flex gap-4">
+                       <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0 border border-white/5">
+                          <ClockIcon className="w-5 h-5 text-indigo-400" />
+                       </div>
+                       <div>
+                          <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#4a6a90] mb-0.5">Processing</h4>
+                          <p className="text-sm font-bold text-white">24h Turnaround</p>
+                       </div>
+                    </div>
+                    <div className="flex gap-4">
+                       <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0 border border-white/5">
+                          <DocumentTextIcon className="w-5 h-5 text-orange-400" />
+                       </div>
+                       <div>
+                          <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#4a6a90] mb-0.5">Documentation</h4>
+                          <p className="text-sm font-bold text-white">Minimal Required</p>
+                       </div>
+                    </div>
+                    <div className="flex gap-4">
+                       <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 border border-white/5">
+                          <ShieldCheckIcon className="w-5 h-5 text-emerald-400" />
+                       </div>
+                       <div>
+                          <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#4a6a90] mb-0.5">Status</h4>
+                          <p className="text-sm font-bold text-white">Secure Encrypted</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="p-8 rounded-[24px] bg-[rgba(0,53,128,0.1)] border border-[rgba(0,85,204,0.1)]">
+                 <p className="text-[10px] uppercase font-bold tracking-widest text-[#5a9ef5] mb-2">Transparency Notice</p>
+                 <p className="text-xs text-[#8baed4] leading-relaxed">
+                    All applications undergo automatic and manual identity verification before approval.
+                 </p>
               </div>
             </div>
 
-            {/* Form kept intact; only container styling changed */}
-            <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-xl ring-1 ring-black/5">
-              <h2 className="text-xl font-semibold text-gray-900">Request a loan</h2>
-              <div className="mt-4 grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Full name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Jane Doe"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      placeholder="0812345678"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Email (optional)</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      placeholder="you@example.com"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Amount (N$)</label>
-                  <input
-                    type="number"
-                    min={50}
-                    step={10}
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : '')}
-                    className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="100"
-                    required
-                  />
-                  {typeof amount === 'number' && amount > 0 && (
-                    <p className="mt-1 text-sm text-gray-600">Estimated pay back: N${calculateRepayment(amount).toFixed(2)}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Collateral type {typeof amount === 'number' && amount >= 500 ? '(required)' : '(optional)'}</label>
-                  <select
-                    value={collateralType}
-                    onChange={(e) => setCollateralType(e.target.value as any)}
-                    className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required={typeof amount === 'number' && amount >= 500}
-                  >
-                    <option value="">Select</option>
-                    <option value="fridge">Fridge</option>
-                    <option value="phone">Phone</option>
-                    <option value="laptop">Laptop</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Collateral description (optional)</label>
-                  <textarea
-                    value={collateralDescription}
-                    onChange={(e) => setCollateralDescription(e.target.value)}
-                    rows={3}
-                    className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Brand, model, condition, accessories..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {submitting ? 'Submitting...' : 'Submit request'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
+            {/* Clean Professional Application Form */}
+            <div className="lg:col-span-3 fade-in-up" style={{ animationDelay: '200ms' }}>
+               <div className="bg-white rounded-[40px] shadow-[0_30px_100px_rgba(0,0,0,0.6)] p-10 md:p-16 relative overflow-hidden">
+                 
+                 <div className="absolute top-0 right-0 p-12 opacity-[0.03]">
+                   <BanknotesIcon className="w-64 h-64 text-black" />
+                 </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          <div className="rounded-xl border bg-white p-6">
-            <h2 className="text-xl font-semibold text-gray-900">How it works</h2>
-            <ol className="mt-4 space-y-3 list-decimal list-inside text-gray-700">
-              <li>Choose your loan amount and provide your contact details.</li>
-              <li>From N$500.00, select collateral: fridge, phone, or laptop.</li>
-              <li>We review and contact you to confirm details and pickup if needed.</li>
-              <li>Receive funds and repay the agreed amount (principal + 30%).</li>
-            </ol>
-            <div className="mt-6">
-              <h3 className="font-medium text-gray-900">Example repayments</h3>
-              <ul className="mt-2 text-sm text-gray-700 space-y-1">
-                <li>N$100.00 → N$130.00</li>
-                <li>N$300.00 → N$390.00</li>
-                <li>N$500.00 → N$650.00 (collateral required)</li>
-              </ul>
+                 <div className="relative z-10">
+                    <div className="flex items-center gap-6 mb-12">
+                       <div className="w-16 h-16 rounded-[20px] bg-gray-50 border border-gray-100 flex items-center justify-center shadow-sm">
+                          <BanknotesIcon className="w-8 h-8 text-black" />
+                       </div>
+                       <div>
+                          <h2 className="text-3xl font-bold text-gray-900 tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Loan Application</h2>
+                          <p className="text-sm text-gray-500 mt-1">Manual approval required for all requests.</p>
+                       </div>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="space-y-3">
+                             <label className="block text-[11px] font-extrabold text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                             <input
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Your Name"
+                                required
+                                className="w-full !bg-gray-50 !border-gray-200 !text-gray-900 !rounded-[16px] !px-6 !py-4 focus:!border-[#1a72f0] transition-all outline-none font-medium"
+                                style={{ background: '#f9fafb', color: '#111827', borderColor: '#e5e7eb' }}
+                             />
+                          </div>
+                          <div className="space-y-3">
+                             <label className="block text-[11px] font-extrabold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                             <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="you@domain.com"
+                                required
+                                className="w-full !bg-gray-50 !border-gray-200 !text-gray-900 !rounded-[16px] !px-6 !py-4 focus:!border-[#1a72f0] transition-all outline-none font-medium"
+                                style={{ background: '#f9fafb', color: '#111827', borderColor: '#e5e7eb' }}
+                             />
+                          </div>
+                       </div>
+
+                       <div className="space-y-3">
+                          <label className="block text-[11px] font-extrabold text-gray-400 uppercase tracking-widest ml-1">Requested Amount (NAD)</label>
+                          <div className="relative">
+                             <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-gray-400">N$</span>
+                             <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder="0.00"
+                                required
+                                className="w-full !bg-gray-50 !border-gray-200 !text-gray-900 !rounded-[16px] !pl-14 !pr-6 !py-4 focus:!border-[#1a72f0] transition-all outline-none font-bold text-xl"
+                                style={{ background: '#f9fafb', color: '#111827', borderColor: '#e5e7eb' }}
+                             />
+                          </div>
+                       </div>
+
+                       <div className="space-y-3">
+                          <label className="block text-[11px] font-extrabold text-gray-400 uppercase tracking-widest ml-1">Reason for Loan</label>
+                          <textarea
+                             value={reason}
+                             onChange={(e) => setReason(e.target.value)}
+                             rows={4}
+                             placeholder="Briefly describe the purpose of this financing..."
+                             required
+                             className="w-full !bg-gray-50 !border-gray-200 !text-gray-900 !rounded-[20px] !px-6 !py-5 focus:!border-[#1a72f0] transition-all outline-none font-medium"
+                             style={{ background: '#f9fafb', color: '#111827', borderColor: '#e5e7eb' }}
+                          />
+                       </div>
+
+                       <div className="flex flex-col sm:flex-row items-center justify-between gap-8 pt-6 border-t border-gray-100">
+                          <div className="flex items-center gap-4">
+                             <div className="w-10 h-10 rounded-full border-2 border-emerald-500/20 flex items-center justify-center">
+                                <ShieldCheckIcon className="w-5 h-5 text-emerald-500" />
+                             </div>
+                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-snug">
+                                Secure Identity<br/>Verification
+                             </p>
+                          </div>
+                          <button
+                             type="submit"
+                             disabled={loading}
+                             className="w-full sm:w-auto bg-[#1a72f0] hover:bg-black text-white px-12 py-5 rounded-[20px] font-bold text-sm uppercase tracking-widest transition-all duration-300 shadow-xl shadow-[#1a72f0]/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                          >
+                             {loading ? 'Verifying...' : 'Submit Request'}
+                             <ArrowRightIcon className="w-5 h-5" />
+                          </button>
+                       </div>
+                    </form>
+                 </div>
+               </div>
             </div>
           </div>
-          <div className="rounded-xl border bg-white p-6">
-            <h2 className="text-xl font-semibold text-gray-900">What you need</h2>
-            <ul className="mt-4 space-y-2 text-gray-700 list-disc list-inside">
-              <li>Valid phone number to reach you</li>
-              <li>Collateral item for amounts from N$500.00</li>
-              <li>Accurate contact details for quick processing</li>
-            </ul>
-          </div>
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   )
 }
-
-

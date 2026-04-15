@@ -1,167 +1,120 @@
 'use client'
 
-import { useState, useEffect, useMemo, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import Navbar from '@/components/layout/Navbar'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
+import Navbar from '@/components/layout/Navbar'
+import PageLoader from '@/components/ui/PageLoader'
+import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { LockClosedIcon, EnvelopeIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
-function LoginForm() {
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  })
-  const searchParams = useSearchParams()
-  const redirectTo = useMemo(() => {
-    const r = searchParams.get('redirect') || '/dashboard'
-    return r.startsWith('/') && !r.startsWith('//') ? r : '/dashboard'
-  }, [searchParams])
-  const { login, user } = useAuth()
   const router = useRouter()
 
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (user) {
-      router.push(redirectTo.startsWith('/') ? redirectTo : '/dashboard')
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
+    if (error) {
+      toast.error(error.message)
+      return
     }
-  }, [user, router, redirectTo])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    toast.success('Access Granted')
+    router.push('/dashboard')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    try {
-      setLoading(true)
-      await login(formData.email, formData.password)
-      toast.success('Login successful!')
-      // useEffect will redirect to redirectTo when user is set
-    } catch (error: any) {
-      console.error('Login error:', error)
-      toast.error(error.message || 'Failed to login')
-    } finally {
-      setLoading(false)
-    }
+  if (loading) {
+     return (
+       <PageLoader 
+         icon={<LockClosedIcon className="w-8 h-8" />}
+         message="Authenticating Identity..."
+       />
+     )
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="animated-background">
-        <div className="floating-shapes">
-          <div className="shape"></div>
-          <div className="shape"></div>
-          <div className="shape"></div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#020b1a] flex flex-col">
       <Navbar />
-      <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <div className="glass-effect rounded-lg p-8 hover-lift">
-            <h2 className="text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 gradient-text">
-              Customer Login
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              Welcome back! Please sign in to your account
-            </p>
+      
+      <main className="flex-grow flex items-center justify-center px-6 py-24">
+        <div className="w-full max-w-xl fade-in-up">
+          
+          <div className="text-center mb-12">
+             <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-[#5a9ef5] mb-4 block">Secure Terminal</span>
+             <h1 className="hero-title !text-5xl">Welcome <span className="gradient-text">Back</span></h1>
           </div>
-        </div>
 
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-          <div className="glass-effect rounded-lg p-8 hover-lift">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium leading-6 text-gray-900">
-                  Email address
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 hover-lift"
-                    placeholder="Enter your email"
-                  />
+          <div className="bg-white rounded-[40px] shadow-[0_30px_100px_rgba(0,0,0,0.6)] p-10 md:p-14 relative overflow-hidden">
+             
+             {/* Decorative Background Element */}
+             <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none">
+                <LockClosedIcon className="w-48 h-48 text-black" />
+             </div>
+
+             <form onSubmit={handleLogin} className="relative z-10 space-y-8">
+                <div className="space-y-6">
+                   <div className="space-y-3">
+                      <label className="block text-[11px] font-extrabold text-gray-400 uppercase tracking-widest ml-1">Account Identifier</label>
+                      <div className="relative">
+                         <EnvelopeIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                         <input
+                           type="email"
+                           value={email}
+                           onChange={(e) => setEmail(e.target.value)}
+                           placeholder="you@domain.com"
+                           required
+                           className="w-full !bg-gray-50 !border-gray-200 !text-gray-900 !rounded-[16px] !pl-16 !pr-6 !py-4 focus:!border-[#1a72f0] focus:!ring-4 focus:!ring-[#1a72f0]/10 transition-all outline-none font-medium"
+                           style={{ background: '#f9fafb', color: '#111827', borderColor: '#e5e7eb' }}
+                         />
+                      </div>
+                   </div>
+
+                   <div className="space-y-3">
+                      <div className="flex justify-between items-center ml-1">
+                         <label className="block text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Secret Key</label>
+                         <Link href="/forgot-password" size="sm" className="text-[10px] font-bold text-[#1a72f0] uppercase tracking-widest hover:underline">Recover Key</Link>
+                      </div>
+                      <div className="relative">
+                         <LockClosedIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                         <input
+                           type="password"
+                           value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           placeholder="••••••••"
+                           required
+                           className="w-full !bg-gray-50 !border-gray-200 !text-gray-900 !rounded-[16px] !pl-16 !pr-6 !py-4 focus:!border-[#1a72f0] focus:!ring-4 focus:!ring-[#1a72f0]/10 transition-all outline-none font-medium"
+                           style={{ background: '#f9fafb', color: '#111827', borderColor: '#e5e7eb' }}
+                         />
+                      </div>
+                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-900">
-                  Password
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 hover-lift"
-                    placeholder="Enter your password"
-                  />
+                <div className="pt-2">
+                   <button
+                     type="submit"
+                     disabled={loading}
+                     className="w-full bg-[#1a72f0] hover:bg-black text-white py-5 rounded-[20px] font-bold text-sm uppercase tracking-widest transition-all duration-300 shadow-xl shadow-[#1a72f0]/25 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+                   >
+                     {loading ? 'Authenticating...' : 'Access Hub'}
+                     <ChevronRightIcon className="w-5 h-5" />
+                   </button>
                 </div>
-              </div>
+             </form>
 
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  <Link href="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500 hover-lift">
-                    Forgot your password?
-                  </Link>
-                </div>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 hover-lift"
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Signing in...
-                    </div>
-                  ) : 'Sign in'}
-                </button>
-              </div>
-
-              <div className="text-center">
-                <p className="text-sm text-gray-600">
-                  Don't have an account?{' '}
-                  <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 hover-lift">
-                    Register here
-                  </Link>
+             <div className="mt-10 pt-10 border-t border-gray-50 text-center">
+                <p className="text-xs text-gray-400 font-medium">
+                   New to the platform?{' '}
+                   <Link href="/register" className="text-[#1a72f0] font-bold uppercase tracking-widest hover:underline ml-1">Create Account</Link>
                 </p>
-              </div>
-            </form>
+             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
-  )
-} 

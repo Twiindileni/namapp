@@ -1,7 +1,14 @@
-export default function BookPhotoshootLoading() {
+'use client'
+
+import React from 'react'
+import PageLoader from '@/components/ui/PageLoader'
+import { CameraIcon } from '@heroicons/react/24/outline'
+
+export default function PhotographyBookingLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
-    </div>
+    <PageLoader 
+      icon={<CameraIcon className="w-8 h-8" />}
+      message="Calibrating Studio..."
+    />
   )
 }

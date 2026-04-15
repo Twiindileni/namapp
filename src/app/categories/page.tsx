@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import Link from 'next/link'
+import PageLoader from '@/components/ui/PageLoader'
 import { supabase } from '@/lib/supabase'
-import toast from 'react-hot-toast'
+import { CameraIcon } from '@heroicons/react/24/outline'
 
 interface PhotographyCategory {
   id: string
@@ -154,8 +155,6 @@ export default function PhotographyPage() {
         }
       } catch (error) {
         console.error('Error loading photography data:', error)
-        // Don't show error toast, just use default data
-        console.log('Using default packages')
       } finally {
         setLoading(false)
       }
@@ -174,9 +173,10 @@ export default function PhotographyPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
+      <PageLoader 
+        icon={<CameraIcon className="w-8 h-8" />}
+        message="Developing Vision..."
+      />
     )
   }
 
@@ -210,22 +210,22 @@ export default function PhotographyPage() {
         {/* Hero Content */}
         <div className="relative z-20 h-full flex items-center justify-center text-white">
           <div className="text-center px-4">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in shadow-sm">
               {heroSlides[currentSlide]?.title || 'Purpose Photography'}
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto opacity-90">
               {heroSlides[currentSlide]?.subtitle || 'Capturing life\'s precious moments with artistry and passion'}
             </p>
             <div className="flex gap-4 justify-center">
               <Link
                 href="#gallery"
-                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-full font-semibold transition-all transform hover:scale-105"
+                className="px-8 py-3 bg-[#1a72f0] hover:bg-black text-white rounded-full font-bold uppercase tracking-widest text-xs transition-all transform hover:scale-105"
               >
                 View Gallery
               </Link>
               <Link
                 href="#pricing"
-                className="px-8 py-3 bg-white text-gray-900 hover:bg-gray-100 rounded-full font-semibold transition-all transform hover:scale-105"
+                className="px-8 py-3 bg-white text-gray-900 hover:bg-gray-100 rounded-full font-bold uppercase tracking-widest text-xs transition-all transform hover:scale-105"
               >
                 See Pricing
               </Link>
@@ -273,88 +273,61 @@ export default function PhotographyPage() {
       <section id="gallery" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
               Our Photography Services
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              From intimate portraits to grand celebrations, we capture every moment with care and creativity
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              From intimate portraits to grand celebrations, we capture every moment with care and creativity.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {categories.length === 0 ? (
               <div className="col-span-full text-center py-12 text-gray-500">
-                <p className="text-lg">No photography categories available yet.</p>
-                <p className="text-sm mt-2">Check back soon!</p>
+                <p className="text-lg font-medium">No photography categories available yet.</p>
+                <p className="text-sm mt-2">Check back soon for updates.</p>
               </div>
             ) : (
               categories.map((category) => (
                 <div
                   key={category.id}
-                  className="group relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-white"
+                  className="group relative overflow-hidden rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:shadow-[0_40px_100px_rgba(0,0,0,0.15)] transition-all duration-500 transform hover:-translate-y-2 bg-white"
                 >
-                  <div className="relative h-80 overflow-hidden">
+                  <div className="relative h-96 overflow-hidden">
                     {category.cover_image_url ? (
                       <img
                         src={category.cover_image_url}
                         alt={category.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-indigo-200 to-purple-200 flex items-center justify-center">
-                        <svg className="w-24 h-24 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                        <CameraIcon className="w-24 h-24 text-indigo-400" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                     {/* Category Info Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                      <h3 className="text-2xl font-bold mb-2">{category.name}</h3>
-                      <p className="text-sm text-gray-200 mb-3">{category.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">
-                          <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                          </svg>
-                          {category.photos?.length || 0} featured
+                    <div className="absolute bottom-0 left-0 right-0 p-10 text-white">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5a9ef5] mb-2 block">Premium Session</span>
+                      <h3 className="text-3xl font-bold mb-3 tracking-tight">{category.name}</h3>
+                      <p className="text-sm text-gray-300 mb-6 line-clamp-2 leading-relaxed">{category.description}</p>
+                      
+                      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                        <span className="text-xs font-bold uppercase tracking-widest text-[#5a9ef5]">
+                          {category.photos?.length || 0} Featured Works
                         </span>
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/photography/${category.slug}`}
-                            className="px-4 py-2 bg-white text-indigo-600 hover:bg-gray-100 rounded-full text-sm font-semibold transition-all transform group-hover:scale-105"
-                          >
-                            View Gallery
-                          </Link>
+                        <div className="flex gap-4">
                           <Link
                             href={`/photography/book?category=${encodeURIComponent(category.name)}`}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-full text-sm font-semibold transition-all transform group-hover:scale-105"
+                            className="w-12 h-12 rounded-2xl bg-[#1a72f0]/90 hover:bg-[#1a72f0] flex items-center justify-center transition-all group-hover:scale-110"
                           >
-                            Book Now
+                             <CameraIcon className="w-6 h-6 text-white" />
                           </Link>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Featured Mini Gallery */}
-                  {category.photos && category.photos.length > 0 && (
-                    <div className="p-4 grid grid-cols-3 gap-2">
-                      {category.photos.slice(0, 3).map((photo) => (
-                        <img
-                          key={photo.id}
-                          src={photo.image_url}
-                          alt={photo.title || category.name}
-                          className="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity cursor-pointer"
-                        />
-                      ))}
-                      {/* Fill empty slots with placeholders */}
-                      {[...Array(Math.max(0, 3 - category.photos.length))].map((_, idx) => (
-                        <div key={`placeholder-${idx}`} className="w-full h-20 bg-gray-100 rounded-lg"></div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ))
             )}
@@ -362,120 +335,66 @@ export default function PhotographyPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-indigo-50 to-purple-50">
+      {/* Simplified Pricing Section */}
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 border-t border-gray-100">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Photography Packages
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+              Standard Packages
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Flexible packages designed to fit your needs and budget
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {packages.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-500">
-                <p className="text-lg">No pricing packages available yet.</p>
-                <p className="text-sm mt-2">Contact us for custom pricing!</p>
-              </div>
-            ) : (
-              packages.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className={`relative rounded-2xl p-8 transition-all duration-300 transform hover:-translate-y-2 ${pkg.is_popular
-                    ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl scale-105'
-                    : 'bg-white shadow-xl'
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {packages.map((pkg) => (
+              <div
+                key={pkg.id}
+                className={`relative rounded-[32px] p-10 transition-all duration-300 transform hover:-translate-y-2 ${pkg.is_popular
+                  ? 'bg-white shadow-2xl scale-105 border-2 border-[#1a72f0]/10'
+                  : 'bg-white shadow-xl'
+                  }`}
+              >
+                {pkg.is_popular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1 bg-[#1a72f0] text-white rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    Standard Choice
+                  </div>
+                )}
+
+                <div className="text-center mb-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 uppercase tracking-widest">
+                    {pkg.name}
+                  </h3>
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-4xl font-bold text-gray-900">
+                      N${pkg.price}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                    {pkg.duration}
+                  </p>
+                </div>
+
+                <ul className="space-y-4 mb-10">
+                  {pkg.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start text-sm text-gray-600 font-medium">
+                      <div className="w-5 h-5 rounded-full bg-[#1a72f0]/10 flex items-center justify-center mr-3 shrink-0">
+                         <div className="w-1.5 h-1.5 rounded-full bg-[#1a72f0]" />
+                      </div>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={`/photography/book?package=${pkg.id}`}
+                  className={`block w-full py-4 px-6 text-center rounded-[20px] font-bold text-xs uppercase tracking-[0.2em] transition-all transform hover:scale-105 ${pkg.is_popular
+                    ? 'bg-[#1a72f0] text-white hover:bg-black'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     }`}
                 >
-                  {pkg.is_popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1 bg-yellow-400 text-gray-900 rounded-full text-sm font-bold">
-                      Most Popular
-                    </div>
-                  )}
-
-                  <div className="text-center mb-8">
-                    <h3 className={`text-2xl font-bold mb-2 ${pkg.is_popular ? 'text-white' : 'text-gray-900'}`}>
-                      {pkg.name}
-                    </h3>
-                    <div className="flex items-baseline justify-center gap-2">
-                      <span className={`text-5xl font-bold ${pkg.is_popular ? 'text-white' : 'text-indigo-600'}`}>
-                        N${pkg.price}
-                      </span>
-                    </div>
-                    <p className={`mt-2 ${pkg.is_popular ? 'text-indigo-100' : 'text-gray-600'}`}>
-                      {pkg.duration}
-                    </p>
-                  </div>
-
-                  <ul className="space-y-4 mb-8">
-                    {pkg.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <svg
-                          className={`w-6 h-6 mr-3 flex-shrink-0 ${pkg.is_popular ? 'text-yellow-400' : 'text-indigo-600'
-                            }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className={pkg.is_popular ? 'text-white' : 'text-gray-700'}>
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link
-                    href={`/photography/book?package=${pkg.id}`}
-                    className={`block w-full py-3 px-6 text-center rounded-full font-semibold transition-all transform hover:scale-105 ${pkg.is_popular
-                      ? 'bg-white text-indigo-600 hover:bg-gray-100'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      }`}
-                  >
-                    Book Now
-                  </Link>
-                </div>
-              ))
-            )}
-          </div>
-
-          <p className="text-center text-gray-600 mt-12 text-sm">
-            * Custom packages available. Contact us to discuss your specific needs.
-          </p>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Ready to Capture Your Special Moments?
-          </h2>
-          <p className="text-xl text-gray-300 mb-8">
-            Let's create beautiful memories together. Get in touch to discuss your photography needs.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/contact"
-              className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-full font-semibold transition-all transform hover:scale-105 inline-flex items-center justify-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Contact Us
-            </Link>
-            <a
-              href="tel:+264817854573"
-              className="px-8 py-4 bg-white text-gray-900 hover:bg-gray-100 rounded-full font-semibold transition-all transform hover:scale-105 inline-flex items-center justify-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              +264 81 785 4573
-            </a>
+                  Initiate Booking
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
       </section>
