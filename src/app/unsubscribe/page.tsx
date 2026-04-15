@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { CheckCircleIcon, ExclamationCircleIcon, EnvelopeSlashIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, ExclamationCircleIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 
 type Status = 'loading' | 'success' | 'already' | 'error'
 
@@ -84,7 +84,7 @@ export default function UnsubscribePage() {
     return (
       <UnsubscribeShell>
         <StatusCard
-          icon={<EnvelopeSlashIcon className="w-12 h-12 text-gray-400" />}
+          icon={<EnvelopeIcon className="w-12 h-12 text-gray-400" />}
           title="Already unsubscribed"
           body="You're already off our newsletter list. No further action needed."
         />
