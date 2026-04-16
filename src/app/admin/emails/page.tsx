@@ -127,6 +127,17 @@ type Product = {
   status: string
 }
 
+type PhotographyPackage = {
+  id: string
+  name: string
+  price: number
+  duration: string
+  features: string[]
+  is_popular: boolean
+  is_active: boolean
+  display_order: number
+}
+
 type RichStudent = { name: string; email: string; meta?: string }
 
 /* ─────────────────────────────────────────────────────────────
@@ -609,6 +620,13 @@ function NewsletterPanel() {
   const [selectedProd,  setSelectedProd]  = useState<Product | null>(null)
   const prodDropRef = useRef<HTMLDivElement>(null)
 
+  const [photoPackages,      setPhotoPackages]      = useState<PhotographyPackage[]>([])
+  const [loadingPhotoPkgs,   setLoadingPhotoPkgs]   = useState(true)
+  const [photoPkgSearch,     setPhotoPkgSearch]     = useState('')
+  const [photoPkgDropOpen,   setPhotoPkgDropOpen]   = useState(false)
+  const [selectedPhotoPkg,   setSelectedPhotoPkg]   = useState<PhotographyPackage | null>(null)
+  const photoPkgDropRef = useRef<HTMLDivElement>(null)
+
   const [merge,       setMerge]       = useState<EmailMergeFields>(() => defaultMergeForTemplate('newsletter_product_update'))
   const [subject,     setSubject]     = useState(meta.defaultSubject)
   const [showPreview, setShowPreview] = useState(false)
@@ -629,6 +647,18 @@ function NewsletterPanel() {
       extraMessage:
         prev.extraMessage?.trim() ||
         'Browse more products on Purpose Technology for the latest specials and new arrivals.',
+    }))
+  }
+
+  const applyPhotoPackageToMerge = (pkg: PhotographyPackage) => {
+    const topFeatures = Array.isArray(pkg.features) ? pkg.features.slice(0, 3).join(', ') : ''
+    const packageDesc = [pkg.duration, topFeatures].filter(Boolean).join(' | ')
+
+    setMerge((prev) => ({
+      ...prev,
+      featuredPhotographyPackageName: pkg.name,
+      featuredPhotographyPackageDesc: packageDesc,
+      featuredPhotographyPackagePrice: `N$ ${Number(pkg.price).toLocaleString('en-NA', { minimumFractionDigits: 2 })}`,
     }))
   }
 
@@ -664,6 +694,34 @@ function NewsletterPanel() {
     load()
   }, [])
 
+  // Load photography packages on mount
+  useEffect(() => {
+    const load = async () => {
+      setLoadingPhotoPkgs(true)
+      try {
+        const headers = await getAuthHeaders()
+        const res = await fetch('/api/admin/photography-packages', { headers })
+        const data = await res.json()
+        if (res.ok) {
+          const list = (data.packages ?? []) as PhotographyPackage[]
+          setPhotoPackages(list)
+          if (list.length > 0) {
+            setSelectedPhotoPkg(list[0])
+            setPhotoPkgSearch(list[0].name)
+            applyPhotoPackageToMerge(list[0])
+          }
+        } else {
+          toast.error(data?.error ?? 'Could not load photography packages')
+        }
+      } catch {
+        toast.error('Failed to load photography packages')
+      } finally {
+        setLoadingPhotoPkgs(false)
+      }
+    }
+    load()
+  }, [])
+
   // Load subscriber count on mount
   useEffect(() => {
     const load = async () => {
@@ -681,6 +739,7 @@ function NewsletterPanel() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (prodDropRef.current && !prodDropRef.current.contains(e.target as Node)) setProdDropOpen(false)
+      if (photoPkgDropRef.current && !photoPkgDropRef.current.contains(e.target as Node)) setPhotoPkgDropOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -694,6 +753,16 @@ function NewsletterPanel() {
       (p.description ?? '').toLowerCase().includes(q)
     )
   }, [products, prodSearch])
+
+  const filteredPhotoPkgs = useMemo(() => {
+    const q = photoPkgSearch.trim().toLowerCase()
+    if (!q) return photoPackages
+    return photoPackages.filter((pkg) =>
+      pkg.name.toLowerCase().includes(q) ||
+      pkg.duration.toLowerCase().includes(q) ||
+      (pkg.features ?? []).join(' ').toLowerCase().includes(q)
+    )
+  }, [photoPackages, photoPkgSearch])
 
   const selectProduct = (p: Product) => {
     setSelectedProd(p)
@@ -711,6 +780,24 @@ function NewsletterPanel() {
       featuredProductDesc:  '',
       featuredProductPrice: '',
       featuredProductImage: '',
+    }))
+  }
+
+  const selectPhotoPackage = (pkg: PhotographyPackage) => {
+    setSelectedPhotoPkg(pkg)
+    setPhotoPkgSearch(pkg.name)
+    setPhotoPkgDropOpen(false)
+    applyPhotoPackageToMerge(pkg)
+  }
+
+  const clearPhotoPackage = () => {
+    setSelectedPhotoPkg(null)
+    setPhotoPkgSearch('')
+    setMerge((prev) => ({
+      ...prev,
+      featuredPhotographyPackageName: '',
+      featuredPhotographyPackageDesc: '',
+      featuredPhotographyPackagePrice: '',
     }))
   }
 
@@ -861,10 +948,89 @@ function NewsletterPanel() {
         </div>
       </div>
 
+      {/* Step 2 — Photography package picker */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+        <div className="h-1 rounded-t-2xl bg-gradient-to-r from-[#7c3aed] via-[#1a72f0] to-[#7c3aed]" />
+        <div className="p-6 sm:p-8">
+          <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Step 2 — Pick a photography package</p>
+          <p className="text-xs text-gray-400 mb-4">
+            {loadingPhotoPkgs
+              ? 'Loading photography packages…'
+              : `${photoPackages.length} active package${photoPackages.length !== 1 ? 's' : ''} available — type to search`}
+          </p>
+
+          <div className="relative" ref={photoPkgDropRef}>
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={photoPkgSearch}
+                onChange={(e) => { setPhotoPkgSearch(e.target.value); setPhotoPkgDropOpen(true) }}
+                onFocus={() => setPhotoPkgDropOpen(true)}
+                placeholder={loadingPhotoPkgs ? 'Loading photography packages…' : 'Search photography packages…'}
+                disabled={loadingPhotoPkgs}
+                className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 focus:border-[#7c3aed] outline-none transition-all disabled:opacity-50"
+              />
+              {selectedPhotoPkg && (
+                <button type="button" onClick={clearPhotoPackage} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {photoPkgDropOpen && !selectedPhotoPkg && filteredPhotoPkgs.length > 0 && (
+              <div className="absolute z-[300] mt-2 w-full bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto">
+                {filteredPhotoPkgs.map((pkg) => (
+                  <button key={pkg.id} type="button"
+                    onClick={() => selectPhotoPackage(pkg)}
+                    className="w-full text-left px-5 py-3.5 hover:bg-purple-50 transition-colors border-b border-gray-50 last:border-0"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{pkg.name}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {pkg.duration}{pkg.features?.length ? ` · ${pkg.features.slice(0, 2).join(', ')}` : ''}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-bold text-[#7c3aed]">
+                        N$ {Number(pkg.price).toLocaleString('en-NA', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {photoPkgDropOpen && !selectedPhotoPkg && photoPkgSearch.trim() && filteredPhotoPkgs.length === 0 && !loadingPhotoPkgs && (
+              <div className="absolute z-[300] mt-2 w-full bg-white border border-gray-200 rounded-2xl shadow-xl px-5 py-4 text-sm text-gray-500">
+                No photography packages match &ldquo;{photoPkgSearch}&rdquo;
+              </div>
+            )}
+          </div>
+
+          {selectedPhotoPkg && (
+            <div className="mt-4 flex items-center gap-3 px-4 py-3 bg-purple-50 border border-purple-100 rounded-xl">
+              <div className="w-12 h-12 rounded-xl bg-purple-100 shrink-0 flex items-center justify-center">
+                <PhotoIcon className="w-6 h-6 text-[#7c3aed]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-gray-900">{selectedPhotoPkg.name}</p>
+                <p className="text-xs text-gray-500 truncate">
+                  {selectedPhotoPkg.duration}{selectedPhotoPkg.features?.length ? ` · ${selectedPhotoPkg.features.slice(0, 2).join(', ')}` : ''}
+                </p>
+              </div>
+              <span className="shrink-0 text-sm font-black text-[#7c3aed]">
+                N$ {Number(selectedPhotoPkg.price).toLocaleString('en-NA', { minimumFractionDigits: 2 })}
+              </span>
+              <CheckCircleIcon className="w-5 h-5 text-emerald-500 shrink-0" />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Step 2 — Compose */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-6 sm:p-8 space-y-6">
-          <p className="text-xs font-black uppercase tracking-widest text-gray-400">Step 2 — Compose newsletter</p>
+          <p className="text-xs font-black uppercase tracking-widest text-gray-400">Step 3 — Compose newsletter</p>
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Subject line</label>
@@ -877,7 +1043,10 @@ function NewsletterPanel() {
           <MergeFieldGrid
             fields={editableFields}
             merge={merge}
-            lockedKeys={selectedProd ? ['featuredProductName', 'featuredProductDesc', 'featuredProductPrice'] : []}
+            lockedKeys={[
+              ...(selectedProd ? ['featuredProductName', 'featuredProductDesc', 'featuredProductPrice'] : []),
+              ...(selectedPhotoPkg ? ['featuredPhotographyPackageName', 'featuredPhotographyPackageDesc', 'featuredPhotographyPackagePrice'] : []),
+            ]}
             onChange={(key, v) => setMerge((prev) => ({ ...prev, [key]: v }))}
           />
 

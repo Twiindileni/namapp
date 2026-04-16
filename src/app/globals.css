@@ -238,6 +238,14 @@ input::placeholder, textarea::placeholder {
   100% { background-position: 50% 0%; }
 }
 
+/* Tracker scan line */
+@keyframes scan {
+  0%   { top: 15%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 85%; opacity: 0; }
+}
+
 /* Gradient Text Animation */
 @keyframes gradient-flow-1 {
   0% {

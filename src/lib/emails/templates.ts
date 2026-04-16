@@ -207,6 +207,9 @@ export const TEMPLATE_META: Record<
       { key: 'featuredProductDesc', label: 'Featured product description', placeholder: 'The most powerful Galaxy yet — now available at Purpose Technology.' },
       { key: 'featuredProductPrice', label: 'Featured product price (optional)', placeholder: 'N$ 21,999' },
       { key: 'featuredProductImage', label: 'Featured product image URL (auto-filled)', placeholder: 'https://...' },
+      { key: 'featuredPhotographyPackageName', label: 'Featured photography package (optional)', placeholder: 'Wedding Premium Package' },
+      { key: 'featuredPhotographyPackageDesc', label: 'Photography package details (optional)', placeholder: '8 hours coverage, edited gallery, preview in 48 hours' },
+      { key: 'featuredPhotographyPackagePrice', label: 'Photography package price (optional)', placeholder: 'N$ 4,500.00' },
       { key: 'specialOffer', label: 'Special offer / promo (optional)', placeholder: '10% off all accessories this weekend only. Use code: PURPOSE10' },
       { key: 'extraMessage', label: 'Closing note (optional)', placeholder: 'Thank you for being part of the Purpose Technology community.' },
     ],
@@ -385,6 +388,9 @@ export function renderEmail(
       const productDesc = val(merge, 'featuredProductDesc', 'A premium, high-definition framed art piece featuring the powerful words of Psalm 91. Perfect for modern interior styling.')
       const productPrice = val(merge, 'featuredProductPrice', 'N$ 850.00')
       const productImage = merge.featuredProductImage?.trim() ? merge.featuredProductImage.trim() : 'https://purposetech.online/placeholder-newsletter-item.jpg'
+      const photoPackageName = merge.featuredPhotographyPackageName?.trim() ? val(merge, 'featuredPhotographyPackageName', '') : ''
+      const photoPackageDesc = merge.featuredPhotographyPackageDesc?.trim() ? val(merge, 'featuredPhotographyPackageDesc', '') : ''
+      const photoPackagePrice = merge.featuredPhotographyPackagePrice?.trim() ? val(merge, 'featuredPhotographyPackagePrice', '') : ''
       const specialOffer = merge.specialOffer?.trim() ? val(merge, 'specialOffer', '') : ''
       const extra = merge.extraMessage?.trim() ? paragraph(val(merge, 'extraMessage', '')) : ''
 
@@ -393,6 +399,17 @@ export function renderEmail(
         paragraph(intro) +
         newsletterSectionHeader('Featured Creation') +
         newsletterProductCard(productName, productDesc, productPrice, productImage) +
+        (photoPackageName
+          ? newsletterSectionHeader('Photography Package Spotlight') +
+            callout(
+              `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">` +
+              `${detailRow('Package', `<strong style="font-size:15px;">${photoPackageName}</strong>`)}` +
+              (photoPackageDesc ? detailRow('Includes', photoPackageDesc) : '') +
+              (photoPackagePrice ? detailRow('Price', `<strong style="color:#059669;">${photoPackagePrice}</strong>`) : '') +
+              `</table>`,
+              '#7c3aed'
+            )
+          : '') +
         (specialOffer
           ? newsletterSectionHeader('Exclusive Protocol') +
             callout(
