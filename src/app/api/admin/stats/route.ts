@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       { count: newContactsCount, error: newContactsError },
       { data: drivingPackagesData, error: drivingPackagesError },
       { data: drivingBookingsData, error: drivingBookingsError },
+      { data: photoBookingsData, error: photoBookingsError },
     ] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('apps').select('status, downloads'),
@@ -52,7 +53,12 @@ export async function GET(request: NextRequest) {
       supabase.from('contact_messages').select('id', { count: 'exact', head: true }),
       supabase.from('contact_messages').select('id', { count: 'exact', head: true }).eq('status', 'new'),
       supabase.from('driving_school_packages').select('id'),
-      supabase.from('driving_school_bookings').select('status'),
+      supabase
+        .from('driving_school_bookings')
+        .select('status, driving_school_packages(price_nad)'),
+      supabase
+        .from('photography_bookings')
+        .select('status, package_id, photography_packages(price)'),
     ])
 
     if (usersError) console.warn('Stats users:', usersError)
@@ -64,6 +70,7 @@ export async function GET(request: NextRequest) {
     if (newContactsError) console.warn('Stats new contacts:', newContactsError)
     if (drivingPackagesError) console.warn('Stats driving packages:', drivingPackagesError)
     if (drivingBookingsError) console.warn('Stats driving bookings:', drivingBookingsError)
+    if (photoBookingsError) console.warn('Stats photography bookings:', photoBookingsError)
 
     const totalApps = appsData?.length ?? 0
     const pendingApps = (appsData ?? []).filter((a: { status?: string }) => a.status === 'pending').length
@@ -78,6 +85,31 @@ export async function GET(request: NextRequest) {
       (sum: number, o: { total_amount?: number | string }) => sum + (Number(o.total_amount) || 0),
       0
     )
+
+    const photographyBookings = photoBookingsData?.length ?? 0
+    const revenuePhotography = (photoBookingsData ?? []).reduce((sum: number, b) => {
+      const row = b as {
+        status?: string
+        photography_packages?: { price?: number | string } | { price?: number | string }[] | null
+      }
+      if (row.status === 'cancelled') return sum
+      const pkg = row.photography_packages
+      const priceRaw = Array.isArray(pkg) ? pkg[0]?.price : pkg?.price
+      return sum + (Number(priceRaw) || 0)
+    }, 0)
+
+    const revenueDrivingSchool = (drivingBookingsData ?? []).reduce((sum: number, b) => {
+      const row = b as {
+        status?: string
+        driving_school_packages?: { price_nad?: number | string } | { price_nad?: number | string }[] | null
+      }
+      if (row.status === 'cancelled') return sum
+      const pkg = row.driving_school_packages
+      const priceRaw = Array.isArray(pkg) ? pkg[0]?.price_nad : pkg?.price_nad
+      return sum + (Number(priceRaw) || 0)
+    }, 0)
+
+    const totalRevenue = totalOrderValue + revenuePhotography + revenueDrivingSchool
 
     const totalRatings = ratingsData?.length ?? 0
     const averageRating =
@@ -100,6 +132,9 @@ export async function GET(request: NextRequest) {
       totalOrders,
       pendingOrders,
       totalOrderValue,
+      revenuePhotography,
+      revenueDrivingSchool,
+      totalRevenue,
       totalRatings,
       averageRating,
       totalContacts: contactsCount ?? 0,
@@ -107,6 +142,7 @@ export async function GET(request: NextRequest) {
       drivingSchoolPackages,
       drivingSchoolBookings,
       drivingSchoolPendingBookings,
+      photographyBookings,
     })
   } catch (err) {
     console.error('Admin stats API error:', err)

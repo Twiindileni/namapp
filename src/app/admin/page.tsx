@@ -15,6 +15,8 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return headers
 }
 
+type RevenueTab = 'all' | 'shop' | 'photography' | 'driving'
+
 interface Stats {
   totalUsers: number
   totalApps: number
@@ -25,6 +27,9 @@ interface Stats {
   totalOrders: number
   pendingOrders: number
   totalOrderValue: number
+  revenuePhotography: number
+  revenueDrivingSchool: number
+  totalRevenue: number
   totalRatings: number
   averageRating: number
   totalContacts: number
@@ -32,6 +37,7 @@ interface Stats {
   drivingSchoolPackages: number
   drivingSchoolBookings: number
   drivingSchoolPendingBookings: number
+  photographyBookings: number
 }
 
 export default function AdminDashboardPage() {
@@ -46,14 +52,19 @@ export default function AdminDashboardPage() {
     totalOrders: 0,
     pendingOrders: 0,
     totalOrderValue: 0,
+    revenuePhotography: 0,
+    revenueDrivingSchool: 0,
+    totalRevenue: 0,
     totalRatings: 0,
     averageRating: 0,
     totalContacts: 0,
     newContacts: 0,
     drivingSchoolPackages: 0,
     drivingSchoolBookings: 0,
-    drivingSchoolPendingBookings: 0
+    drivingSchoolPendingBookings: 0,
+    photographyBookings: 0
   })
+  const [revenueTab, setRevenueTab] = useState<RevenueTab>('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -79,13 +90,21 @@ export default function AdminDashboardPage() {
           totalOrders: data.totalOrders ?? 0,
           pendingOrders: data.pendingOrders ?? 0,
           totalOrderValue: data.totalOrderValue ?? 0,
+          revenuePhotography: data.revenuePhotography ?? 0,
+          revenueDrivingSchool: data.revenueDrivingSchool ?? 0,
+          totalRevenue:
+            data.totalRevenue ??
+            (Number(data.totalOrderValue) || 0) +
+              (Number(data.revenuePhotography) || 0) +
+              (Number(data.revenueDrivingSchool) || 0),
           totalRatings: data.totalRatings ?? 0,
           averageRating: data.averageRating ?? 0,
           totalContacts: data.totalContacts ?? 0,
           newContacts: data.newContacts ?? 0,
           drivingSchoolPackages: data.drivingSchoolPackages ?? 0,
           drivingSchoolBookings: data.drivingSchoolBookings ?? 0,
-          drivingSchoolPendingBookings: data.drivingSchoolPendingBookings ?? 0
+          drivingSchoolPendingBookings: data.drivingSchoolPendingBookings ?? 0,
+          photographyBookings: data.photographyBookings ?? 0
         })
       } catch (error) {
         console.error('Error fetching stats:', error)
@@ -162,9 +181,59 @@ export default function AdminDashboardPage() {
               <dt className="truncate text-sm font-medium text-gray-500">Pending Orders</dt>
               <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.pendingOrders}</dd>
             </div>
-            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-              <dt className="truncate text-sm font-medium text-gray-500">Total Order Value</dt>
-              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">N$ {stats.totalOrderValue.toFixed(2)}</dd>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 sm:col-span-2 lg:col-span-2 xl:col-span-2">
+              <dt className="text-sm font-medium text-gray-500">Revenue (N$)</dt>
+              <div className="mt-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                {(
+                  [
+                    ['all', 'All sources'],
+                    ['shop', 'Product orders'],
+                    ['photography', 'Photography'],
+                    ['driving', 'Driving school']
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setRevenueTab(id)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                      revenueTab === id
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <dd className="mt-3 text-3xl font-semibold tracking-tight text-gray-900">
+                N${' '}
+                {(revenueTab === 'all'
+                  ? stats.totalRevenue
+                  : revenueTab === 'shop'
+                    ? stats.totalOrderValue
+                    : revenueTab === 'photography'
+                      ? stats.revenuePhotography
+                      : stats.revenueDrivingSchool
+                ).toFixed(2)}
+              </dd>
+              {revenueTab === 'all' && (
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                  Product orders N$ {stats.totalOrderValue.toFixed(2)} · Photography N${' '}
+                  {stats.revenuePhotography.toFixed(2)} · Driving school N${' '}
+                  {stats.revenueDrivingSchool.toFixed(2)}
+                </p>
+              )}
+              {revenueTab === 'photography' && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Sum of package prices for non-cancelled bookings (no package selected counts as N$0).
+                </p>
+              )}
+              {revenueTab === 'driving' && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Sum of package prices for non-cancelled bookings (no package selected counts as N$0).
+                </p>
+              )}
             </div>
             <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
               <dt className="truncate text-sm font-medium text-gray-500">Total Ratings</dt>
@@ -192,6 +261,10 @@ export default function AdminDashboardPage() {
             <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
               <dt className="truncate text-sm font-medium text-gray-500">New Contacts</dt>
               <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.newContacts}</dd>
+            </div>
+            <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt className="truncate text-sm font-medium text-gray-500">Photography bookings</dt>
+              <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stats.photographyBookings}</dd>
             </div>
             <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
               <dt className="truncate text-sm font-medium text-gray-500">Driving School Packages</dt>
