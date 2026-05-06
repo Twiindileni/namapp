@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import PageLoader from '@/components/ui/PageLoader'
 import { supabase } from '@/lib/supabase'
 import { CameraIcon } from '@heroicons/react/24/outline'
@@ -42,6 +43,7 @@ interface HeroSlide {
 }
 
 export default function PhotographyPage() {
+  const router = useRouter()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [categories, setCategories] = useState<PhotographyCategory[]>([])
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([])
@@ -291,7 +293,8 @@ export default function PhotographyPage() {
               categories.map((category) => (
                 <div
                   key={category.id}
-                  className="group relative overflow-hidden rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:shadow-[0_40px_100px_rgba(0,0,0,0.15)] transition-all duration-500 transform hover:-translate-y-2 bg-white"
+                  onClick={() => router.push(`/photography/${category.slug}`)}
+                  className="group relative cursor-pointer overflow-hidden rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:shadow-[0_40px_100px_rgba(0,0,0,0.15)] transition-all duration-500 transform hover:-translate-y-2 bg-white"
                 >
                   <div className="relative h-96 overflow-hidden">
                     {category.cover_image_url ? (
@@ -319,8 +322,16 @@ export default function PhotographyPage() {
                         </span>
                         <div className="flex gap-4">
                           <Link
+                            href={`/photography/${category.slug}`}
+                            className="px-4 h-12 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-xs font-bold uppercase tracking-wider text-white transition-all"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View Gallery
+                          </Link>
+                          <Link
                             href={`/photography/book?category=${encodeURIComponent(category.name)}`}
                             className="w-12 h-12 rounded-2xl bg-[#1a72f0]/90 hover:bg-[#1a72f0] flex items-center justify-center transition-all group-hover:scale-110"
+                            onClick={(e) => e.stopPropagation()}
                           >
                              <CameraIcon className="w-6 h-6 text-white" />
                           </Link>
